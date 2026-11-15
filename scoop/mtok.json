@@ -12,7 +12,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/songjiarong/mtok/releases/download/v0.2.0/mtok_0.2.0_windows_amd64.exe#/mtok.exe",
-            "hash": "2c061f2ce71140c49427b1875f5ba0104fe900031d39f5283d0f5c78379c7af3"
+            "hash": "35c0d425bbf71ccc2935eac28718f5223fa9dd6064d499b0351cccacbe3e4a17"
         }
     },
     "bin": "mtok.exe",
@@ -30,6 +30,7 @@
         }
     }
 }
+
 
 
 

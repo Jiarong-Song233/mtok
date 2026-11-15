@@ -6,6 +6,7 @@ package agg
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/songjiarong/mtok/internal/render"
 	"github.com/songjiarong/mtok/internal/store"
@@ -41,6 +42,30 @@ type Result struct {
 	RoutedKeptTokens    int64
 	// DirectTokens is the usage that came straight from agent logs.
 	DirectTokens int64
+}
+
+// knownAgents are the ids that name an actual coding agent, so a journal row
+// attributed to one of them merges with that agent's direct-log rows.
+var knownAgents = map[string]bool{
+	"claude": true, "codex": true, "gemini": true, "antigravity": true,
+	"grok": true, "kimi": true, "zcode": true, "pi": true, "dsh": true,
+	"opencode": true, "openclaw": true, "qwen": true, "copilot": true,
+}
+
+// DisplayAgent labels a journal row for --by-agent. The proxy also records
+// bare HTTP clients (node, curl, Mozilla, python-urllib); those are prefixed so
+// they are not mistaken for an agent.
+func DisplayAgent(agent string) string {
+	if agent == "" {
+		return "unknown"
+	}
+	if knownAgents[agent] {
+		return agent
+	}
+	if strings.HasPrefix(agent, "magpie") {
+		return agent
+	}
+	return "magpie/" + agent
 }
 
 // Build aggregates rows inside [Since, Until].
@@ -84,7 +109,7 @@ func Build(rows []store.Row, opt Options) Result {
 
 		key := r.Model
 		if opt.ByAgent {
-			key = r.Agent
+			key = DisplayAgent(r.Agent)
 		}
 		b, ok := buckets[key]
 		if !ok {
