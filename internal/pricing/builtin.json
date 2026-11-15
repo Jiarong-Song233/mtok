@@ -1,0 +1,75 @@
+{
+  "_note": "Reference prices in USD per million tokens, NOT a bill. cache_read/cache_write are explicit cache rates; 0 means the vendor reports cache tokens but does not bill them separately for this tier. Override any entry in ~/.config/mtok/pricing.json.",
+  "currency": { "rate": 7.2, "symbol": "¥" },
+  "default": null,
+  "models": {
+    "DeepSeek-V4.1-Flash":     { "input": 0.25, "output": 1.00, "cache_read": 0.05, "cache_write": 0.25 },
+    "DeepSeek-V4.1-Flash-Max": { "input": 0.55, "output": 2.19, "cache_read": 0.11, "cache_write": 0.55 },
+    "DeepSeek-V4-Pro":         { "input": 0.55, "output": 2.19, "cache_read": 0.11, "cache_write": 0.55 },
+    "DeepSeek-Flash":          { "input": 0.25, "output": 1.00, "cache_read": 0.05, "cache_write": 0.25 },
+    "DeepSeek-V4":             { "input": 0.28, "output": 1.10, "cache_read": 0.06, "cache_write": 0.28 },
+
+    "GLM-5.3":        { "input": 0.60, "output": 2.20, "cache_read": 0.11, "cache_write": 0.60 },
+    "GLM-5.3-Flash":  { "input": 0.10, "output": 0.30, "cache_read": 0.02, "cache_write": 0.10 },
+    "GLM-5.3-FlashX": { "input": 0.15, "output": 0.45, "cache_read": 0.03, "cache_write": 0.15 },
+    "GLM-5.2":        { "input": 0.60, "output": 2.20, "cache_read": 0.11, "cache_write": 0.60 },
+    "GLM-5.1":        { "input": 0.50, "output": 2.00, "cache_read": 0.10, "cache_write": 0.50 },
+    "GLM-5":          { "input": 0.50, "output": 2.00, "cache_read": 0.10, "cache_write": 0.50 },
+    "GLM-4.6":        { "input": 0.40, "output": 1.60, "cache_read": 0.08, "cache_write": 0.40 },
+
+    "Qwen3.8-Flash":    { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+    "Qwen3.8-Max":      { "input": 1.20, "output": 6.00, "cache_read": 0.24, "cache_write": 1.20 },
+    "Qwen4-Max-Preview":{ "input": 1.60, "output": 8.00, "cache_read": 0.32, "cache_write": 1.60 },
+    "Qoder-Fast":       { "input": 0.20, "output": 0.80, "cache_read": 0.04, "cache_write": 0.20 },
+
+    "Kimi-K3.1-Pro":     { "input": 0.60, "output": 2.50, "cache_read": 0.12, "cache_write": 0.60 },
+    "Kimi-K3":           { "input": 0.50, "output": 2.00, "cache_read": 0.10, "cache_write": 0.50 },
+    "Kimi-K2.8-Preview": { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+    "Kimi-K2.6":         { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+    "Kimi-For-Coding":   { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+
+    "MiniMax-M3.1-Flash":   { "input": 0.20, "output": 0.80, "cache_read": 0.04, "cache_write": 0.20 },
+    "Step-5-Preview":       { "input": 0.20, "output": 0.80, "cache_read": 0.04, "cache_write": 0.20 },
+    "Xiaomi-MiMo-V2.6-Pro": { "input": 0.35, "output": 1.40, "cache_read": 0.07, "cache_write": 0.35 },
+    "SenseNova-6.8-Flash":      { "input": 0.15, "output": 0.60, "cache_read": 0.03, "cache_write": 0.15 },
+    "SenseNova-6.8-Flash-Lite": { "input": 0.08, "output": 0.30, "cache_read": 0.02, "cache_write": 0.08 },
+    "Hy4":                  { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+    "Hy3":                  { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+
+    "GPT-6.1-Sol":   { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
+    "GPT-6.1-Terra": { "input": 2.50, "output": 15.00, "cache_read": 0.25,  "cache_write": 2.50 },
+    "GPT-6-Sol":     { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
+    "GPT-6-Luna":    { "input": 0.25, "output": 2.00,  "cache_read": 0.025, "cache_write": 0.25 },
+    "GPT-6-Astra":   { "input": 2.00, "output": 12.00, "cache_read": 0.20,  "cache_write": 2.00 },
+    "GPT-5.6-Sol":   { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
+    "GPT-5.6-Luna":  { "input": 0.25, "output": 2.00,  "cache_read": 0.025, "cache_write": 0.25 },
+    "GPT-5.6-Terra": { "input": 2.50, "output": 15.00, "cache_read": 0.25,  "cache_write": 2.50 },
+    "GPT-5.5":       { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
+    "GPT-5.4":       { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
+    "GPT-5.4-Mini":  { "input": 0.25, "output": 2.00,  "cache_read": 0.025, "cache_write": 0.25 },
+    "GPT-5.3-Codex": { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
+
+    "Claude-Opus-5.5":   { "input": 15.00, "output": 75.00, "cache_read": 1.50, "cache_write": 18.75 },
+    "Claude-Opus-5":     { "input": 15.00, "output": 75.00, "cache_read": 1.50, "cache_write": 18.75 },
+    "Claude-Opus-4.8":   { "input": 15.00, "output": 75.00, "cache_read": 1.50, "cache_write": 18.75 },
+    "Claude-Opus-4.6":   { "input": 15.00, "output": 75.00, "cache_read": 1.50, "cache_write": 18.75 },
+    "Claude-Opus-4":     { "input": 15.00, "output": 75.00, "cache_read": 1.50, "cache_write": 18.75 },
+    "Claude-Sonnet-5.5": { "input": 3.00,  "output": 15.00, "cache_read": 0.30, "cache_write": 3.75 },
+    "Claude-Haiku-5.5":  { "input": 0.80,  "output": 4.00,  "cache_read": 0.08, "cache_write": 1.00 },
+    "Claude-Fable-5.2":  { "input": 3.00,  "output": 15.00, "cache_read": 0.30, "cache_write": 3.75 },
+    "Claude-Fable-5.1":  { "input": 3.00,  "output": 15.00, "cache_read": 0.30, "cache_write": 3.75 },
+
+    "Gemini-3.8-Flash":  { "input": 0.30, "output": 2.50, "cache_read": 0.03, "cache_write": 0.30 },
+    "Gemini-3-Pro":      { "input": 2.00, "output": 12.00, "cache_read": 0.20, "cache_write": 2.00 },
+    "Gemini-4-Carbon":   { "input": 2.00, "output": 10.00, "cache_read": 0.20, "cache_write": 2.00 },
+    "Gemini-4-Hydrogen": { "input": 2.00, "output": 10.00, "cache_read": 0.20, "cache_write": 2.00 },
+    "Gemini-4-Argon":    { "input": 2.00, "output": 10.00, "cache_read": 0.20, "cache_write": 2.00 },
+
+    "Grok-4.7": { "input": 2.00, "output": 15.00, "cache_read": 0.20, "cache_write": 2.00 },
+    "Grok-4.6": { "input": 2.00, "output": 12.00, "cache_read": 0.20, "cache_write": 2.00 },
+
+    "Space-Bunny":  { "input": 0.50, "output": 2.00, "cache_read": 0.10, "cache_write": 0.50 },
+    "Composer-2.5": { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
+    "Muse-Wonder":  { "input": 1.00, "output": 5.00, "cache_read": 0.20, "cache_write": 1.00 }
+  }
+}

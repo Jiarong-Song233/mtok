@@ -1,0 +1,31 @@
+{
+    "version": "0.1.0",
+    "description": "Extremely light global AI token usage tracker: incremental local log parsing, cross-vendor model merging, reference pricing. One static exe, no runtime.",
+    "homepage": "https://github.com/songjiarong/mtok",
+    "license": "MIT",
+    "notes": [
+        "Config lives in ~/.config/mtok (mtok config --init writes defaults).",
+        "The aggregate database lives in %LOCALAPPDATA%\\mtok.",
+        "First run builds the database from every supported agent log; later runs only read new bytes."
+    ],
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/songjiarong/mtok/releases/download/v0.1.0/mtok_0.1.0_windows_amd64.exe#/mtok.exe",
+            "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    },
+    "bin": "mtok.exe",
+    "checkver": {
+        "github": "https://github.com/songjiarong/mtok"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/songjiarong/mtok/releases/download/v$version/mtok_$version_windows_amd64.exe#/mtok.exe",
+                "hash": {
+                    "url": "$baseurl/checksums.txt"
+                }
+            }
+        }
+    }
+}

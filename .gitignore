@@ -1,0 +1,22 @@
+# build output
+/bin/
+/dist/
+*.exe
+!scoop/*.json
+
+# local databases and lock files
+*.db
+*.db.lock
+*.db.tmp
+*.db.corrupt
+
+# scratch
+/_probe/
+/tmp/
+*.log
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
