@@ -22,7 +22,11 @@ type Quota struct {
 	Name      string  `json:"name"`
 	Remaining float64 `json:"remaining"`
 	Detail    string  `json:"detail,omitempty"`
+	accounts  int
 }
+
+// Accounts reports how many accounts were merged into this quota.
+func (q Quota) Accounts() int { return q.accounts }
 
 // Usage is the proxy's own accounting, used by `mtok doctor` to cross-check
 // what the log adapters counted.
@@ -80,7 +84,9 @@ type window struct {
 	Name      string   `json:"name"`
 	Used      *float64 `json:"used"`
 	Remaining *float64 `json:"remaining"`
-	Text      *string  `json:"text"`
+	// Text is sometimes a string and sometimes a bool in magpie's payload, so
+	// it is read as an opaque value and ignored.
+	Text any `json:"text"`
 }
 
 type entry struct {
@@ -136,8 +142,30 @@ func (c *Client) Quotas() ([]Quota, error) {
 			out = append(out, q)
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Provider < out[j].Provider })
-	return out, nil
+	// Several accounts can share one provider; show the tightest allowance and
+	// how many accounts contribute to it.
+	groups := map[string][]Quota{}
+	var order []string
+	for _, q := range out {
+		if _, ok := groups[q.Provider]; !ok {
+			order = append(order, q.Provider)
+		}
+		groups[q.Provider] = append(groups[q.Provider], q)
+	}
+	merged := make([]Quota, 0, len(order))
+	for _, p := range order {
+		list := groups[p]
+		best := list[0]
+		for _, q := range list[1:] {
+			if q.Remaining < best.Remaining {
+				best = q
+			}
+		}
+		best.accounts = len(list)
+		merged = append(merged, best)
+	}
+	sort.Slice(merged, func(i, j int) bool { return merged[i].Provider < merged[j].Provider })
+	return merged, nil
 }
 
 func summarize(d entry) (Quota, bool) {

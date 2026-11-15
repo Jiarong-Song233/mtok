@@ -312,15 +312,6 @@ func isCompressed(path string) bool {
 	return ext == ".zst" || ext == ".zstd"
 }
 
-// Summary renders a one-line description of a pass, used by `mtok config`.
-func (r Result) Summary() string {
-	if r.Changed == 0 {
-		return fmt.Sprintf("scan: %d files, no new bytes in %dms", r.Files, r.Elapsed.Milliseconds())
-	}
-	return fmt.Sprintf("scan: %d files (+%d changed), %s read, %d records in %dms",
-		r.Files, r.Changed, HumanBytes(r.Bytes), r.Records, r.Elapsed.Milliseconds())
-}
-
 // HumanBytes formats a byte count.
 func HumanBytes(n int64) string {
 	const unit = 1024

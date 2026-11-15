@@ -8,11 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -310,18 +308,4 @@ func (s *Store) Stats() (rows int, files int, bytes int64) {
 		bytes = st.Size()
 	}
 	return len(s.state.Rows), len(s.state.Files), bytes
-}
-
-// String renders a row for debugging.
-func (r Row) String() string {
-	return strings.Join([]string{r.Day, r.Model, r.Agent,
-		fmt.Sprint(r.Input), fmt.Sprint(r.Output),
-		fmt.Sprint(r.CacheRead), fmt.Sprint(r.CacheWrite)}, " ")
-}
-
-// CopyTo writes a human-readable JSON dump; used by tests and `mtok config --dump`.
-func (s *Store) CopyTo(w io.Writer) error {
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	return enc.Encode(s.state)
 }

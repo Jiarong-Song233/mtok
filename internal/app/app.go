@@ -45,6 +45,7 @@ type env struct {
 	declErrs []error
 	sync     ingest.Result
 	synced   bool
+	queryMS  int64
 }
 
 // Run executes the CLI and returns the process exit code.
@@ -55,7 +56,7 @@ func Run(a Args) int {
 		fmt.Fprintln(a.Stderr, "try `mtok help`")
 		return 2
 	}
-	if o.help {
+	if o.help || o.cmd == "help" {
 		usage(a.Stdout, a.Version)
 		return 0
 	}
@@ -243,12 +244,14 @@ func (e *env) report(o options) int {
 	aggStart := time.Now()
 	view := e.buildView(o, sp, now)
 	view.Elapsed = elapsed + time.Since(aggStart)
+	e.queryMS = time.Since(aggStart).Milliseconds()
+	view.Sync = e.syncLine(o)
 
 	if !o.noMagpie && e.set.Magpie {
 		c := magpie.New(e.set.MagpieURL)
 		if qs, err := c.Quotas(); err == nil {
 			for _, q := range qs {
-				view.Quotas = append(view.Quotas, render.Quota{Provider: q.Provider, Name: q.Name, Remaining: q.Remaining})
+				view.Quotas = append(view.Quotas, render.Quota{Provider: q.Provider, Name: q.Name, Remaining: q.Remaining, Detail: quotaDetail(q)})
 			}
 			view.MagpieOK = true
 		} else {
@@ -359,7 +362,6 @@ func (e *env) buildView(o options, sp span, now time.Time) *render.View {
 		Currency: cur,
 		Width:    width,
 		Top:      top,
-		Sync:     e.syncLine(o),
 	}
 	if len(e.declErrs) > 0 {
 		v.Note = fmt.Sprintf("%d 个声明式 adapter 加载失败，运行 mtok adapters 查看", len(e.declErrs))
@@ -369,15 +371,16 @@ func (e *env) buildView(o options, sp span, now time.Time) *render.View {
 
 // syncLine summarises the incremental scan in one short line.
 func (e *env) syncLine(o options) string {
+	q := fmt.Sprintf("查询 %dms", e.queryMS)
 	if o.noSync {
-		return "本地聚合库（未扫描新日志）"
+		return "本地聚合库（未扫描新日志） / " + q
 	}
 	r := e.sync
 	if r.Changed == 0 {
-		return fmt.Sprintf("扫描 %d 文件，无新增；聚合查询 %dms", r.Files, r.Elapsed.Milliseconds())
+		return fmt.Sprintf("扫描 %d 文件，无新增 / %dms / %s", r.Files, r.Elapsed.Milliseconds(), q)
 	}
-	return fmt.Sprintf("扫描 %d 文件 +%d；新增 %d 记录 / %s / %dms",
-		r.Files, r.Changed, r.Records, ingest.HumanBytes(r.Bytes), r.Elapsed.Milliseconds())
+	return fmt.Sprintf("扫描 %d 文件 +%d；新增 %d 记录 / %s / %dms / %s",
+		r.Files, r.Changed, r.Records, ingest.HumanBytes(r.Bytes), r.Elapsed.Milliseconds(), q)
 }
 
 // spanLabel renders the header window, preferring the real data range for "all".
@@ -409,7 +412,24 @@ func spanLabel(sp span, rows []store.Row) string {
 	return f(since) + "~" + f(sp.until)
 }
 
+// quotaDetail renders the per-provider detail (codex shows both windows) and
+// notes when several accounts were merged.
+func quotaDetail(q magpie.Quota) string {
+	d := q.Detail
+	if n := q.Accounts(); n > 1 {
+		if d != "" {
+			return d + fmt.Sprintf("×%d", n)
+		}
+		return fmt.Sprintf("%.0f%%×%d", q.Remaining, n)
+	}
+	return d
+}
+
+// trimErr shortens a network error to its last cause for the one-line footer.
 func trimErr(err error) string {
+	if err == nil {
+		return ""
+	}
 	s := err.Error()
 	if i := strings.LastIndex(s, ": "); i >= 0 && i+2 < len(s) {
 		return s[i+2:]

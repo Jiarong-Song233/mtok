@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/songjiarong/mtok/internal/adapters"
-	"github.com/songjiarong/mtok/internal/globx"
 	"github.com/songjiarong/mtok/internal/magpie"
 	"github.com/songjiarong/mtok/internal/render"
 )
@@ -291,9 +290,4 @@ func humanKB(n int64) string {
 	default:
 		return fmt.Sprintf("%d B", n)
 	}
-}
-
-// expandGlob is used by tests to confirm patterns resolve.
-func (e *env) expandGlob(pattern string) []string {
-	return globx.Expand(pattern, e.paths.Home)
 }

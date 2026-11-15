@@ -12,7 +12,7 @@
   bin/mtok.exe is refreshed for local use.
 #>
 param(
-  [string[]]$Targets = @("$($env:GOOS)/$($env:GOARCH)"),
+  [string[]]$Targets = @(),
   [string]$Version = "",
   [string]$OutputDir = "",
   [switch]$NoLocal
@@ -22,6 +22,12 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
+  # Accept both "windows/amd64,linux/amd64" and two separate arguments.
+  $Targets = @($Targets | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  if ($Targets.Count -eq 0) {
+    $envInfo = (& go env GOOS GOARCH) -split "`n"
+    $Targets = @("$($envInfo[0].Trim())/$($envInfo[1].Trim())")
+  }
   if (-not $Version) {
     $git = Get-Command git -ErrorAction SilentlyContinue
     if ($git) {

@@ -169,6 +169,7 @@ type Quota struct {
 	Provider  string  `json:"provider"`
 	Name      string  `json:"name"`
 	Remaining float64 `json:"remaining"`
+	Detail    string  `json:"detail,omitempty"`
 }
 
 // View is everything the renderer needs.
@@ -310,7 +311,10 @@ func (v *View) Render(w io.Writer) {
 		var buf strings.Builder
 		n := 0
 		for _, q := range v.Quotas {
-			cell := fmt.Sprintf("%s %.0f%%", q.Provider, q.Remaining)
+			cell := q.Provider + " " + fmt.Sprintf("%.0f%%", q.Remaining)
+			if q.Detail != "" {
+				cell = q.Provider + " " + q.Detail
+			}
 			col := "31"
 			if q.Remaining >= 50 {
 				col = "32"
