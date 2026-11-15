@@ -2,8 +2,10 @@ package adapters
 
 import "path/filepath"
 
-// Builtins returns the adapters compiled into mtok, in display order.
-func Builtins(home string) []Adapter {
+// Builtins returns the adapters compiled into mtok, in display order. The last
+// one reads magpie's call journal, which is what makes proxy-routed usage
+// resolvable to real model names.
+func Builtins(home, magpieJournal string) []Adapter {
 	return []Adapter{
 		NewClaude(home),
 		NewCodex(home),
@@ -13,6 +15,7 @@ func Builtins(home string) []Adapter {
 		NewZCode(home),
 		NewPi(home),
 		NewDSH(home),
+		NewMagpie(home, magpieJournal),
 	}
 }
 
@@ -30,12 +33,12 @@ func UnsupportedSources(home string) []Unsupported {
 		{
 			Name:   "opencode",
 			Probe:  filepath.Join(home, ".local", "share", "opencode", "opencode.db"),
-			Reason: "usage lives in an SQLite database; mtok reads text logs only (export to JSONL or write a declarative adapter)",
+			Reason: "local store is SQLite; usage that went through magpie is covered by the magpie journal, direct calls are not parsed",
 		},
 		{
 			Name:   "openclaw",
 			Probe:  filepath.Join(home, ".openclaw", "state", "openclaw.sqlite"),
-			Reason: "usage lives in an SQLite database; not parsed yet",
+			Reason: "local store is SQLite; usage that went through magpie is covered by the magpie journal",
 		},
 		{
 			Name:   "cursor",

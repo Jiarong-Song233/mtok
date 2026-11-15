@@ -11,6 +11,10 @@ import (
 // when an optional config file is absent.
 func readFile(path string) ([]byte, error) { return os.ReadFile(path) }
 
+// envValue reads an environment variable; adapters only use it to locate an
+// explicit override.
+func envValue(key string) string { return os.Getenv(key) }
+
 // tomlString extracts a top-level string assignment from a TOML file without
 // pulling in a TOML parser. Only simple `key = "value"` lines are matched.
 func tomlString(data []byte, key string) string {

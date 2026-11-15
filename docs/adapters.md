@@ -223,7 +223,29 @@ func TestMyAgentParseLine(t *testing.T) {
 
 若来源是压缩归档（`*.zst`），不用做任何事：`internal/ingest` 会按扩展名整包解码，并把该文件标记为「只解析一次」，避免重复计数。
 
-### 2.3 测试清单
+### 2.3 读取「代理明细」类数据源（JournalSource）
+
+如果一个来源不是 agent 自己的日志，而是某种**网关/代理的调用明细**（典型例子就是 magpie 的 `usage.jsonl`），多实现一个方法即可接入去重体系：
+
+```go
+// JournalSource marks adapters that read the proxy's own usage journal.
+type JournalSource interface{ JournalSource() bool }
+```
+
+语义：
+
+- 这个 adapter 产出的行会被标记为 `source=magpie`；
+- 查询时，**本地日志里 route 形态的记录**（`auto/auto`、`auto/*`、`group/*`、`magpie/*`、`auto-*`）如果落在同一个 `(day, agent)` 上，会被明细行整段替代，避免重复计；
+- 明细没覆盖到的 `(day, agent)`，route 记录原样保留（兜底，不丢数据）。
+
+参考实现：`internal/adapters/magpie.go`。要点：
+
+1. **优先用 `served` 字段**：代理常常把路由别名写进 `model`/`req`（`auto`、`qfmodel`、`hy4free`），`served` 才是真正跑的模型；
+2. `agent` 用小写作为行归属，与本地 adapter 的 `Agent()` 对齐（`claude`、`grok`、`pi`、`dsh`），这样覆盖判断才会命中；
+3. 时间用记录自己的时间戳（不要用文件 mtime），否则按天聚合会错位；
+4. 不按 status 过滤：magpie 的口径把取消/重试的 token 也算进去，过滤反而与它对不上。
+
+### 2.4 测试清单
 
 ```powershell
 go test ./...

@@ -34,6 +34,7 @@
     "SenseNova-6.8-Flash":      { "input": 0.15, "output": 0.60, "cache_read": 0.03, "cache_write": 0.15 },
     "SenseNova-6.8-Flash-Lite": { "input": 0.08, "output": 0.30, "cache_read": 0.02, "cache_write": 0.08 },
     "Hy4":                  { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+    "Hy4-Preview":          { "input": 0.35, "output": 1.40, "cache_read": 0.07, "cache_write": 0.35 },
     "Hy3":                  { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
 
     "GPT-6.1-Sol":   { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
@@ -47,6 +48,7 @@
     "GPT-5.5":       { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
     "GPT-5.4":       { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
     "GPT-5.4-Mini":  { "input": 0.25, "output": 2.00,  "cache_read": 0.025, "cache_write": 0.25 },
+    "GPT-5.4-Nano":  { "input": 0.15, "output": 0.60,  "cache_read": 0.015, "cache_write": 0.15 },
     "GPT-5.3-Codex": { "input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 1.25 },
 
     "Claude-Opus-5.5":   { "input": 15.00, "output": 75.00, "cache_read": 1.50, "cache_write": 18.75 },
@@ -58,6 +60,9 @@
     "Claude-Haiku-5.5":  { "input": 0.80,  "output": 4.00,  "cache_read": 0.08, "cache_write": 1.00 },
     "Claude-Fable-5.2":  { "input": 3.00,  "output": 15.00, "cache_read": 0.30, "cache_write": 3.75 },
     "Claude-Fable-5.1":  { "input": 3.00,  "output": 15.00, "cache_read": 0.30, "cache_write": 3.75 },
+    "Claude-Haiku-4.5":  { "input": 0.80,  "output": 4.00,  "cache_read": 0.08, "cache_write": 1.00 },
+    "GPT-4.1":           { "input": 2.00,  "output": 8.00,  "cache_read": 0.50, "cache_write": 2.00 },
+    "GPT-4.1-Mini":      { "input": 0.40,  "output": 1.60,  "cache_read": 0.10, "cache_write": 0.40 },
 
     "Gemini-3.8-Flash":  { "input": 0.30, "output": 2.50, "cache_read": 0.03, "cache_write": 0.30 },
     "Gemini-3-Pro":      { "input": 2.00, "output": 12.00, "cache_read": 0.20, "cache_write": 2.00 },

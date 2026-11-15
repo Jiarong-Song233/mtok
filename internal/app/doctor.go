@@ -6,8 +6,10 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/songjiarong/mtok/internal/adapters"
+	"github.com/songjiarong/mtok/internal/agg"
 	"github.com/songjiarong/mtok/internal/magpie"
 	"github.com/songjiarong/mtok/internal/render"
 )
@@ -43,11 +45,11 @@ func (e *env) doctor(o options) int {
 		stats[s.Name] = adaptersStat{
 			files: s.Files, changed: s.Changed, records: s.Records,
 			bytes: s.Bytes, models: s.Models, errorsN: s.Errors,
-			lastErr: s.LastErr, notime: s.NoTime, skipped: int64(s.Skipped), elapsedMS: s.ElapsedMS,
+			lastErr: s.LastErr, notime: s.NoTime, skipped: int64(s.Skipped), elapsedMS: s.ElapsedMS, rotated: s.Rotated,
 			globs: s.Globs,
 		}
 	}
-	fmt.Fprintln(w, e.hdr("ADAPTER      状态      文件   增  记录/本次  耗时   模型"))
+	fmt.Fprintln(w, e.hdr("ADAPTER      状态      文件   增  记录/本次  耗时   本次扫描模型"))
 	for _, a := range e.adapters {
 		st, seen := stats[a.Name()]
 		status := "ok"
@@ -73,6 +75,9 @@ func (e *env) doctor(o options) int {
 		if st.notime > 0 {
 			fmt.Fprintf(w, "      %s %d 条记录无时间戳，已计入扫描当天\n", e.dim("!"), st.notime)
 		}
+		if st.rotated > 0 {
+			fmt.Fprintf(w, "      %s %d 个日志被截断重写，历史贡献无法撤回，建议 mtok --rebuild\n", e.dim("!"), st.rotated)
+		}
 		if st.skipped > 0 {
 			fmt.Fprintf(w, "      %s %d 个压缩归档已入库，未重复扫描\n", e.dim("·"), st.skipped)
 		}
@@ -96,22 +101,52 @@ func (e *env) doctor(o options) int {
 	}
 	fmt.Fprintln(w)
 
-	// Cross-check against the proxy for today, the only window where both
-	// sides have seen the same requests.
+	// Cross-check the journal reader against the proxy's own aggregation. The
+	// journal is what mtok uses for proxy-side detail, so these two must agree
+	// field by field.
 	if e.set.Magpie && !o.noMagpie {
-		fmt.Fprintln(w, e.hdr("与 magpie 今日口径对照（/v1/magpie/usage?period=today）"))
+		fmt.Fprintln(w, e.hdr("magpie 明细核对（journal vs /v1/magpie/usage）"))
 		c := magpie.New(e.set.MagpieURL)
-		u, err := c.Usage("today")
-		if err != nil {
-			fmt.Fprintf(w, "  %s magpie 不可用: %v\n", e.dim("·"), trimErr(err))
-		} else {
-			today := e.todayTotals()
-			fmt.Fprintf(w, "  %-10s %12s %12s %12s\n", "", "input", "output", "cache_read")
-			fmt.Fprintf(w, "  %-10s %12d %12d %12d\n", "mtok", today.input, today.output, today.cacheRead)
-			fmt.Fprintf(w, "  %-10s %12d %12d %12d\n", "magpie", u.Input, u.Output, u.CacheRead)
-			fmt.Fprintf(w, "  %-10s %12s %12s %12s\n", "差值",
-				diffPct(today.input, u.Input), diffPct(today.output, u.Output), diffPct(today.cacheRead, u.CacheRead))
-			fmt.Fprintln(w, "  "+e.dim("只有经过 magpie 的请求才会出现在右侧：直连厂商的 agent 只计入 mtok。"))
+		windows := []struct {
+			label  string
+			period string
+			days   int
+		}{
+			{"today", "today", 1},
+			{"7d", "7d", 7},
+			{"30d", "30d", 30},
+		}
+		fmt.Fprintf(w, "  %-6s %-12s %-12s %-12s %-12s\n", "", "input", "output", "cache_read", "calls")
+		for _, win := range windows {
+			since := time.Now().AddDate(0, 0, -(win.days - 1)).Format("2006-01-02")
+			got := e.magpieSum(since)
+			u, err := c.Usage(win.period)
+			if err != nil {
+				fmt.Fprintf(w, "  %-6s %s %v\n", win.label, e.dim("magpie 不可用:"), trimErr(err))
+				continue
+			}
+			api := u.SumModels()
+			fmt.Fprintf(w, "  %-6s %-12d %-12d %-12d %-12d  %s\n", win.label, got.input, got.output, got.cacheRead, got.calls, e.dim("mtok journal"))
+			fmt.Fprintf(w, "  %-6s %-12d %-12d %-12d %-12d  %s\n", " api", api.Input, api.Output, api.CacheRead, api.Calls, e.dim("models[] 求和"))
+			fmt.Fprintf(w, "  %-6s %s\n", "", e.dim("差值  "+diffPct(got.input, api.Input)+" / "+
+				diffPct(got.output, api.Output)+" / "+diffPct(got.cacheRead, api.CacheRead)))
+		}
+		fmt.Fprintln(w, "  "+e.dim("mtok 用 served（真实底层模型）分组，magpie 的 models[] 用 model 分组：模型行名可能不同，总量逐字段一致。"))
+		fmt.Fprintln(w, "  "+e.dim("calls 差值来自 0-token 记录（错误/取消）：mtok 不计空记录，magpie 仍计次；当天仍在写入时个位数漂移属正常。"))
+		fmt.Fprintln(w)
+
+		// How the current window splits between proxy detail and direct logs.
+		sp, _ := resolveSpan(o, time.Now())
+		res := agg.Build(e.store.Rows(), agg.Options{Since: sp.since, Until: sp.until,
+			Price: func(string) (float64, float64, float64, float64, bool) { return 0, 0, 0, 0, false }})
+		fmt.Fprintln(w, e.hdr("用量构成（当前视图）"))
+		fmt.Fprintf(w, "  %-14s %d 条 / %s tok\n", "magpie 明细", res.MagpieRows, fnum(res.MagpieTokens))
+		fmt.Fprintf(w, "  %-14s %s tok\n", "直连日志", fnum(res.DirectTokens))
+		if res.RoutedDropped > 0 {
+			fmt.Fprintf(w, "  %-14s %d 条 / %s tok（已由明细替代）\n", "route 记录", res.RoutedDropped, fnum(res.RoutedDroppedTokens))
+		}
+		if res.RoutedKept > 0 {
+			fmt.Fprintf(w, "  %-14s %d 条 / %s tok（明细未覆盖，保留为 Auto）\n", "route 残留", res.RoutedKept, fnum(res.RoutedKeptTokens))
 		}
 		fmt.Fprintln(w)
 	}
@@ -136,6 +171,7 @@ type adaptersStat struct {
 	files, changed                    int
 	records, errorsN, notime, skipped int64
 	elapsedMS                         int64
+	rotated                           int
 	_                                 struct{}
 	bytes                             int64
 	models                            []string
@@ -144,8 +180,27 @@ type adaptersStat struct {
 }
 
 type totals struct {
-	input, output, cacheRead, cacheWrite int64
+	input, output, cacheRead, cacheWrite, calls int64
 }
+
+// magpieSum totals journal rows from since (inclusive) to today.
+func (e *env) magpieSum(since string) totals {
+	var t totals
+	for _, r := range e.store.Rows() {
+		if !r.FromMagpie() || r.Day < since {
+			continue
+		}
+		t.input += r.Input
+		t.output += r.Output
+		t.cacheRead += r.CacheRead
+		t.cacheWrite += r.CacheWrite
+		t.calls += r.Calls
+	}
+	return t
+}
+
+// fnum is render.FmtNum for compact token counts.
+func fnum(n int64) string { return render.FmtNum(n) }
 
 // todayTotals sums the stored rows for the local day.
 func (e *env) todayTotals() totals {
@@ -241,6 +296,15 @@ func (e *env) showConfig(o options) int {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "  %-13s width=%d top=%d currency=%s rate=%.2f magpie=%v zstd=%v\n",
 		"settings", e.set.Width, e.set.Top, e.set.Currency, e.set.Rate, e.set.Magpie, e.set.Zstd)
+	for _, a := range e.adapters {
+		if m, ok := a.(*adapters.Magpie); ok {
+			state := e.dim("  [absent]")
+			if _, err := os.Stat(m.Path()); err == nil {
+				state = ""
+			}
+			fmt.Fprintf(w, "  %-13s %s%s\n", "magpie usage", e.compactPath(m.Path()), state)
+		}
+	}
 	if len(e.set.Disabled) > 0 {
 		var names []string
 		for n := range e.set.Disabled {

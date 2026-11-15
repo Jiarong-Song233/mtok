@@ -19,6 +19,7 @@ type Config struct {
 	Rate        float64         `yaml:"rate"`
 	Magpie      *bool           `yaml:"magpie"`
 	MagpieURL   string          `yaml:"magpie_url"`
+	MagpieUsage string          `yaml:"magpie_usage_file"`
 	Zstd        *bool           `yaml:"zstd"`
 	Agents      map[string]bool `yaml:"agents"`
 	PricingFile string          `yaml:"pricing_file"`
@@ -29,15 +30,16 @@ type Config struct {
 
 // Settings is the resolved configuration used by the CLI.
 type Settings struct {
-	Width     int
-	Top       int
-	Currency  string
-	Rate      float64
-	Magpie    bool
-	MagpieURL string
-	Zstd      bool
-	Disabled  map[string]bool
-	Pricing   string // absolute path of the pricing file to load
+	Width       int
+	Top         int
+	Currency    string
+	Rate        float64
+	Magpie      bool
+	MagpieURL   string
+	MagpieUsage string // proxy call journal (~/.config/magpie/usage.jsonl)
+	Zstd        bool
+	Disabled    map[string]bool
+	Pricing     string // absolute path of the pricing file to load
 }
 
 // Paths holds every location mtok touches.
@@ -136,6 +138,9 @@ func Load(p Paths) (Settings, Config, error) {
 	if raw.MagpieURL != "" {
 		s.MagpieURL = raw.MagpieURL
 	}
+	if raw.MagpieUsage != "" {
+		s.MagpieUsage = Expand(raw.MagpieUsage, p.Home)
+	}
 	if raw.Zstd != nil {
 		s.Zstd = *raw.Zstd
 	}
@@ -191,8 +196,9 @@ width: 64            # max output width in terminal columns
 top: 8               # models shown in the table
 currency: CNY        # CNY renders ¥, USD renders $
 rate: 7.2            # USD -> CNY conversion for the reference price
-magpie: true         # probe the local magpie proxy for remaining quotas
+magpie: true         # read the local magpie journal + quotas (false = local logs only)
 magpie_url: http://127.0.0.1:3425
+# magpie_usage_file: ~/.config/magpie/usage.jsonl   # override the call journal path
 zstd: true           # parse .jsonl.zst archives (codex / dsh)
 # pricing_file: ~/.config/mtok/pricing.json
 # agents:            # disable a built-in adapter

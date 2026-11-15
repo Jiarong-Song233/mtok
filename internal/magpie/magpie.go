@@ -29,17 +29,47 @@ type Quota struct {
 func (q Quota) Accounts() int { return q.accounts }
 
 // Usage is the proxy's own accounting, used by `mtok doctor` to cross-check
-// what the log adapters counted.
+// what the journal adapter counted.
 type Usage struct {
-	Period     string  `json:"period"`
-	Since      string  `json:"since"`
+	Period     string       `json:"period"`
+	Since      string       `json:"since"`
+	Calls      int64        `json:"calls"`
+	Input      int64        `json:"input"`
+	Output     int64        `json:"output"`
+	CacheRead  int64        `json:"cache_read"`
+	CacheWrite int64        `json:"cache_write"`
+	Cost       float64      `json:"cost"`
+	Unpriced   int64        `json:"unpriced"`
+	Models     []ModelUsage `json:"models"`
+}
+
+// ModelUsage is one row of models[] in the usage response.
+type ModelUsage struct {
+	ID         string  `json:"id"`
+	Provider   string  `json:"provider"`
+	Model      string  `json:"model"`
+	Host       string  `json:"host"`
 	Calls      int64   `json:"calls"`
 	Input      int64   `json:"input"`
 	Output     int64   `json:"output"`
 	CacheRead  int64   `json:"cache_read"`
 	CacheWrite int64   `json:"cache_write"`
 	Cost       float64 `json:"cost"`
-	Unpriced   int64   `json:"unpriced"`
+}
+
+// SumModels totals the per-model breakdown, which is the field-by-field number
+// mtok's journal reader must reproduce.
+func (u Usage) SumModels() ModelUsage {
+	var s ModelUsage
+	for _, m := range u.Models {
+		s.Calls += m.Calls
+		s.Input += m.Input
+		s.Output += m.Output
+		s.CacheRead += m.CacheRead
+		s.CacheWrite += m.CacheWrite
+		s.Cost += m.Cost
+	}
+	return s
 }
 
 // Client is a short-timeout reader.

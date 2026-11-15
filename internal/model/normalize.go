@@ -103,10 +103,32 @@ func clean(s string) string {
 			s = strings.TrimSpace(s[:i])
 		}
 	}
+	// Dated snapshots such as gpt-4.1-2025-04-14 are the same model as gpt-4.1.
+	s = trimDateSuffix(s)
 	if i := strings.LastIndexByte(s, '/'); i >= 0 {
 		s = strings.TrimSpace(s[i+1:])
 	}
 	return s
+}
+
+// trimDateSuffix removes a trailing -YYYY-MM-DD snapshot stamp.
+func trimDateSuffix(s string) string {
+	if len(s) < 11 {
+		return s
+	}
+	tail := s[len(s)-10:]
+	if tail[4] != '-' || tail[7] != '-' || s[len(s)-11] != '-' {
+		return s
+	}
+	for i, r := range tail {
+		if i == 4 || i == 7 {
+			continue
+		}
+		if r < '0' || r > '9' {
+			return s
+		}
+	}
+	return s[:len(s)-11]
 }
 
 var capWords = map[string]string{

@@ -57,6 +57,7 @@ var builtinAliases = map[string][]string{
 	"GPT-5.5":       {"gpt-5.5"},
 	"GPT-5.4":       {"gpt-5.4"},
 	"GPT-5.4-Mini":  {"gpt-5.4-mini", "gpt-5.4-mini-fast"},
+	"GPT-5.4-Nano":  {"gpt-5.4-nano"},
 	"GPT-5.3-Codex": {"gpt-5.3-codex"},
 	"GPT-Reserve":   {"gpt-reserve"},
 
@@ -70,6 +71,11 @@ var builtinAliases = map[string][]string{
 	"Claude-Haiku-5.5":  {"claude-haiku-5-5"},
 	"Claude-Fable-5.2":  {"claude-fable-5-2", "claude-fable-5.2"},
 	"Claude-Fable-5.1":  {"claude-fable-5-1"},
+	"Claude-Haiku-4.5":  {"claude-haiku-4-5", "claude-haiku-4.5"},
+
+	// ---- OpenAI 旧版 / 快照模型（magpie served 里会出现带日期后缀的名字）----
+	"GPT-4.1":      {"gpt-4.1", "gpt-41"},
+	"GPT-4.1-Mini": {"gpt-4.1-mini"},
 
 	// ---- Google ----
 	"Gemini-3.8-Flash": {
@@ -88,6 +94,7 @@ var builtinAliases = map[string][]string{
 
 	// ---- 国内其它 ----
 	"Hy4":          {"hy4", "hy4free", "hy4std"},
+	"Hy4-Preview":  {"hy4-preview"},
 	"Hy3":          {"hy3"},
 	"Hy3-X":        {"hy3-x"},
 	"Space-Bunny":  {"space-bunny"},

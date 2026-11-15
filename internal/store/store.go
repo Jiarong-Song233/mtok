@@ -16,7 +16,7 @@ import (
 
 // Version is bumped whenever State changes shape; an older file is discarded
 // and rebuilt from the logs.
-const Version = 3
+const Version = 4
 
 // FileState records how far a log file has been consumed.
 type FileState struct {
@@ -27,12 +27,23 @@ type FileState struct {
 	Done  bool   `json:"d,omitempty"` // whole-file-only source (compressed archives)
 }
 
+// SourceMagpie marks rows recovered from the magpie proxy journal instead of an
+// agent's own log.
+const SourceMagpie = "magpie"
+
 // Row is one (day, model, agent) aggregate. Token counts follow the canonical
 // convention: Input excludes cached input, so rows from different vendors add up.
+//
+// Source is empty for rows parsed from an agent's local log and SourceMagpie for
+// rows parsed from the proxy journal. Routed marks local rows whose model name
+// was only a proxy route (auto/auto, group/*, magpie/*): those carry no model
+// identity, so the journal's detail replaces them whenever it covers the day.
 type Row struct {
 	Day        string `json:"day"`
 	Model      string `json:"model"`
 	Agent      string `json:"agent"`
+	Source     string `json:"src,omitempty"`
+	Routed     bool   `json:"routed,omitempty"`
 	Input      int64  `json:"in"`
 	Output     int64  `json:"out"`
 	CacheRead  int64  `json:"cr"`
@@ -43,8 +54,22 @@ type Row struct {
 // Total is the sum of all token fields of a row.
 func (r Row) Total() int64 { return r.Input + r.Output + r.CacheRead + r.CacheWrite }
 
-func rowKey(day, model, agent string) string {
-	return day + "\x1f" + model + "\x1f" + agent
+// FromMagpie reports whether the row came from the proxy journal.
+func (r Row) FromMagpie() bool { return r.Source == SourceMagpie }
+
+// CoverageKey identifies the (day, agent) pair a row belongs to; it is the unit
+// used to decide whether the proxy journal already covers a routed local row.
+func CoverageKey(day, agent string) string { return day + "\x1f" + agent }
+
+func rowKey(r Row) string {
+	key := r.Day + "\x1f" + r.Model + "\x1f" + r.Agent
+	if r.Source != "" {
+		key += "\x1f" + r.Source
+	}
+	if r.Routed {
+		key += "\x1froute"
+	}
+	return key
 }
 
 // State is the whole database. It stays small enough (kilobytes to a few MB)
@@ -96,7 +121,10 @@ func Open(path string) (*Store, error) {
 		return s, nil
 	}
 	if st.Version != Version {
-		s.corrupt()
+		// Same file, older schema: keep it on disk (it is still readable by an
+		// older mtok) and simply start a fresh in-memory state that the next
+		// Save replaces.
+		s.dirty = true
 		return s, nil
 	}
 	if st.Files != nil {
@@ -249,7 +277,7 @@ func (s *Store) Add(r Row) {
 	if r.Input == 0 && r.Output == 0 && r.CacheRead == 0 && r.CacheWrite == 0 {
 		return
 	}
-	k := rowKey(r.Day, r.Model, r.Agent)
+	k := rowKey(r)
 	cur, ok := s.state.Rows[k]
 	if !ok {
 		c := r

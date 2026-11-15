@@ -6,11 +6,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/songjiarong/mtok/internal/adapters"
+	"github.com/songjiarong/mtok/internal/agg"
 	"github.com/songjiarong/mtok/internal/config"
 	"github.com/songjiarong/mtok/internal/ingest"
 	"github.com/songjiarong/mtok/internal/magpie"
@@ -125,7 +125,7 @@ func load(a Args, paths config.Paths) (*env, error) {
 	if err != nil {
 		return nil, err
 	}
-	ads := adapters.Builtins(paths.Home)
+	ads := adapters.Builtins(paths.Home, set.MagpieUsage)
 	decl, declErrs := adapters.LoadDir(paths.Adaptersd, paths.Home)
 	ads = append(ads, decl...)
 	return &env{
@@ -134,16 +134,24 @@ func load(a Args, paths config.Paths) (*env, error) {
 	}, nil
 }
 
-// sync performs the incremental ingest once per process.
+// sync performs the incremental ingest once per process. The proxy journal is
+// only read when magpie support is enabled, so `--no-magpie` stays local-only.
 func (e *env) syncNow(o options) error {
 	if e.synced {
 		return nil
+	}
+	disabled := make(map[string]bool, len(e.set.Disabled)+1)
+	for k, v := range e.set.Disabled {
+		disabled[k] = v
+	}
+	if o.noMagpie || !e.set.Magpie {
+		disabled["magpie"] = true
 	}
 	res, err := ingest.Run(e.store, e.adapters, e.norm, ingest.Options{
 		Home:     e.paths.Home,
 		Zstd:     e.set.Zstd,
 		Rebuild:  o.rebuild,
-		Disabled: e.set.Disabled,
+		Disabled: disabled,
 	})
 	e.sync = res
 	e.synced = true
@@ -277,64 +285,17 @@ func (e *env) report(o options) int {
 // buildView aggregates store rows into the render model.
 func (e *env) buildView(o options, sp span, now time.Time) *render.View {
 	rows := e.store.Rows()
-	type bucket struct {
-		name string
-		row  render.ModelRow
+	aggOpt := agg.Options{
+		Since:         sp.since,
+		Until:         sp.until,
+		ByAgent:       o.byAgent,
+		ExcludeMagpie: o.noMagpie || !e.set.Magpie,
+		Price: func(name string) (float64, float64, float64, float64, bool) {
+			p, ok := e.price.Lookup(name)
+			return p.Input, p.Output, p.CacheRead, p.CacheWrite, ok
+		},
 	}
-	buckets := map[string]*bucket{}
-	for _, r := range rows {
-		if r.Day < sp.since || r.Day > sp.until {
-			continue
-		}
-		key := r.Model
-		if o.byAgent {
-			key = r.Agent
-		}
-		b, ok := buckets[key]
-		if !ok {
-			b = &bucket{name: key, row: render.ModelRow{Name: key, Priced: true}}
-			if o.byAgent {
-				b.row.Agent = key
-			}
-			buckets[key] = b
-		}
-		b.row.Input += r.Input
-		b.row.Output += r.Output
-		b.row.CacheRead += r.CacheRead
-		b.row.CacheWrite += r.CacheWrite
-		b.row.Calls += r.Calls
-		if p, ok := e.price.Lookup(r.Model); ok {
-			b.row.CostUSD += p.USD(r.Input, r.Output, r.CacheRead, r.CacheWrite)
-		} else {
-			b.row.Priced = false
-		}
-	}
-	out := make([]render.ModelRow, 0, len(buckets))
-	totals := render.ModelRow{Name: "合计", Priced: true}
-	unpriced := map[string]bool{}
-	for _, b := range buckets {
-		out = append(out, b.row)
-		totals.Input += b.row.Input
-		totals.Output += b.row.Output
-		totals.CacheRead += b.row.CacheRead
-		totals.CacheWrite += b.row.CacheWrite
-		totals.Calls += b.row.Calls
-		totals.CostUSD += b.row.CostUSD
-		if !b.row.Priced {
-			unpriced[b.row.Name] = true
-		}
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Total() != out[j].Total() {
-			return out[i].Total() > out[j].Total()
-		}
-		return out[i].Name < out[j].Name
-	})
-	var unp []string
-	for n := range unpriced {
-		unp = append(unp, n)
-	}
-	sort.Strings(unp)
+	res := agg.Build(rows, aggOpt)
 
 	width := e.set.Width
 	if o.width > 0 {
@@ -354,19 +315,34 @@ func (e *env) buildView(o options, sp span, now time.Time) *render.View {
 		Since:    sp.since,
 		Until:    sp.until,
 		Now:      now,
-		Rows:     out,
+		Rows:     res.Rows,
 		ByAgent:  o.byAgent,
-		Totals:   totals,
-		Unpriced: unp,
+		Totals:   res.Totals,
+		Unpriced: res.Unpriced,
 		Rate:     e.set.Rate,
 		Currency: cur,
 		Width:    width,
 		Top:      top,
 	}
+	v.Note = e.magpieNote(res)
 	if len(e.declErrs) > 0 {
 		v.Note = fmt.Sprintf("%d 个声明式 adapter 加载失败，运行 mtok adapters 查看", len(e.declErrs))
 	}
 	return v
+}
+
+// magpieNote explains how proxy-routed usage was resolved for this window.
+func (e *env) magpieNote(res agg.Result) string {
+	switch {
+	case res.MagpieRows > 0 && res.RoutedDropped > 0:
+		return fmt.Sprintf("magpie 明细 %d 条已替代 %d 条 route 记录；直连日志照常计入",
+			res.MagpieRows, res.RoutedDropped)
+	case res.MagpieRows > 0:
+		return fmt.Sprintf("magpie 明细 %d 条（opencode/node 等无本地日志的来源也在此列）", res.MagpieRows)
+	case res.RoutedKept > 0:
+		return "未发现 magpie 明细（usage.jsonl），route 记录已保留为 Auto(未指明)"
+	}
+	return ""
 }
 
 // syncLine summarises the incremental scan in one short line.
@@ -376,11 +352,15 @@ func (e *env) syncLine(o options) string {
 		return "本地聚合库（未扫描新日志） / " + q
 	}
 	r := e.sync
+	warn := ""
+	if r.Rotated > 0 {
+		warn = fmt.Sprintf("；%d 个日志被截断（--rebuild 校正）", r.Rotated)
+	}
 	if r.Changed == 0 {
 		return fmt.Sprintf("扫描 %d 文件，无新增 / %dms / %s", r.Files, r.Elapsed.Milliseconds(), q)
 	}
-	return fmt.Sprintf("扫描 %d 文件 +%d；新增 %d 记录 / %s / %dms / %s",
-		r.Files, r.Changed, r.Records, ingest.HumanBytes(r.Bytes), r.Elapsed.Milliseconds(), q)
+	return fmt.Sprintf("扫描 %d 文件 +%d；新增 %d 记录 / %s / %dms / %s%s",
+		r.Files, r.Changed, r.Records, ingest.HumanBytes(r.Bytes), r.Elapsed.Milliseconds(), q, warn)
 }
 
 // spanLabel renders the header window, preferring the real data range for "all".
@@ -455,7 +435,7 @@ func usage(w io.Writer, version string) {
 		"  --width, -w N        最大行宽（默认 64）",
 		"  --top, -n N          表格最多显示多少行（默认 8）",
 		"  --usd                以美元显示参考价",
-		"  --no-magpie          不连接 magpie 查额度",
+		"  --no-magpie          纯本地模式：不读代理明细、不查额度",
 		"  --no-sync            跳过日志扫描，只查本地聚合库",
 		"  --rebuild            清空聚合库后全量重建",
 		"  --no-color           强制去色",

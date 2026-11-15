@@ -33,16 +33,19 @@ type Options struct {
 
 // AdapterStat reports what one adapter did in this pass.
 type AdapterStat struct {
-	Name        string
-	Globs       []string
-	Files       int
-	Changed     int
-	Bytes       int64
-	Lines       int64
-	Records     int64
-	NoTime      int64
-	Errors      int64
-	Skipped     int
+	Name    string
+	Globs   []string
+	Files   int
+	Changed int
+	Bytes   int64
+	Lines   int64
+	Records int64
+	NoTime  int64
+	Errors  int64
+	Skipped int
+	// Rotated counts files that shrank since the last pass (log rotation):
+	// their usage is re-read, so past contributions may be counted again.
+	Rotated     int
 	Models      []string
 	LastErr     string
 	ElapsedMS   int64
@@ -55,6 +58,7 @@ type Result struct {
 	Stats    []AdapterStat
 	Files    int
 	Changed  int
+	Rotated  int
 	Records  int64
 	Bytes    int64
 	Elapsed  time.Duration
@@ -79,9 +83,11 @@ func Run(st *store.Store, ads []adapters.Adapter, norm *model.Normalizer, opt Op
 		st.Reset()
 	}
 	var active []adapters.Adapter
+	var idle []adapters.Adapter
 	for _, a := range ads {
 		if opt.Disabled[a.Name()] {
 			res.Disabled = append(res.Disabled, a.Name())
+			idle = append(idle, a)
 			continue
 		}
 		active = append(active, a)
@@ -108,10 +114,20 @@ func Run(st *store.Store, ads []adapters.Adapter, norm *model.Normalizer, opt Op
 	wg.Wait()
 
 	seen := map[string]bool{}
+	// A disabled adapter keeps its offsets: dropping them would make the next
+	// enabled run re-read the whole log and double count what is already stored.
+	for _, a := range idle {
+		for _, pattern := range a.Globs() {
+			for _, p := range globx.Expand(pattern, opt.Home) {
+				seen[p] = true
+			}
+		}
+	}
 	for _, o := range outs {
 		res.Stats = append(res.Stats, o.stat)
 		res.Files += o.stat.Files
 		res.Changed += o.stat.Changed
+		res.Rotated += o.stat.Rotated
 		res.Records += o.stat.Records
 		res.Bytes += o.stat.Bytes
 		for _, r := range o.rows {
@@ -143,6 +159,10 @@ func scanAdapter(st *store.Store, a adapters.Adapter, norm *model.Normalizer, op
 	out.stat.Name = a.Name()
 	out.stat.Globs = a.Globs()
 	models := map[string]bool{}
+	src := ""
+	if js, ok := a.(adapters.JournalSource); ok && js.JournalSource() {
+		src = store.SourceMagpie
+	}
 
 	for _, pattern := range a.Globs() {
 		for _, path := range globx.Expand(pattern, opt.Home) {
@@ -180,10 +200,15 @@ func scanAdapter(st *store.Store, a adapters.Adapter, norm *model.Normalizer, op
 				ctx.Model = prev.Model
 			}
 			if offset > size {
-				offset = 0 // truncated or rotated
+				// Rotated or truncated: the old bytes are gone, so counting restarts.
+				// Past contributions cannot be retracted; doctor flags it for --rebuild.
+				offset = 0
+				if existed {
+					out.stat.Rotated++
+				}
 			}
 			read, lines, recs, notime, err := readFile(path, offset, compressed, a, ctx, func(r adapters.Record) {
-				mergeRecord(out.rows, r, a, norm, models)
+				mergeRecord(out.rows, r, a, norm, models, src, routedOf(a, r.Model))
 			})
 			if err != nil {
 				out.stat.Errors++
@@ -273,7 +298,7 @@ func readFile(path string, offset int64, compressed bool, a adapters.Adapter, ct
 
 // mergeRecord canonicalizes the model, attributes the day in local time and
 // folds the record into the per-adapter aggregate.
-func mergeRecord(rows map[string]store.Row, r adapters.Record, a adapters.Adapter, norm *model.Normalizer, models map[string]bool) {
+func mergeRecord(rows map[string]store.Row, r adapters.Record, a adapters.Adapter, norm *model.Normalizer, models map[string]bool, src string, routed bool) {
 	if r.Input == 0 && r.Output == 0 && r.CacheRead == 0 && r.CacheWrite == 0 {
 		return
 	}
@@ -293,17 +318,34 @@ func mergeRecord(rows map[string]store.Row, r adapters.Record, a adapters.Adapte
 		agent = a.Agent()
 	}
 	day := r.Time.Local().Format("2006-01-02")
-	k := day + "\x1f" + name + "\x1f" + agent
-	row, ok := rows[k]
-	if !ok {
-		row = store.Row{Day: day, Model: name, Agent: agent}
+	row := store.Row{Day: day, Model: name, Agent: agent, Source: src, Routed: routed}
+	row.Input = r.Input
+	row.Output = r.Output
+	row.CacheRead = r.CacheRead
+	row.CacheWrite = r.CacheWrite
+	row.Calls = 1
+	k := day + "\x1f" + name + "\x1f" + agent + "\x1f" + src
+	if routed {
+		k += "\x1froute"
 	}
-	row.Input += r.Input
-	row.Output += r.Output
-	row.CacheRead += r.CacheRead
-	row.CacheWrite += r.CacheWrite
-	row.Calls++
+	cur, ok := rows[k]
+	if ok {
+		row.Input += cur.Input
+		row.Output += cur.Output
+		row.CacheRead += cur.CacheRead
+		row.CacheWrite += cur.CacheWrite
+		row.Calls += cur.Calls
+	}
 	rows[k] = row
+}
+
+// routedOf decides whether a local record only carries a proxy route name. Rows
+// from the journal itself are never routed: they already hold the real model.
+func routedOf(a adapters.Adapter, raw string) bool {
+	if js, ok := a.(adapters.JournalSource); ok && js.JournalSource() {
+		return false
+	}
+	return adapters.IsRouteModel(raw)
 }
 
 // isCompressed reports whether a log file needs whole-file decoding.
