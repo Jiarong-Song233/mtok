@@ -332,6 +332,7 @@ func (v *View) Render(w io.Writer) {
 		if n > 0 {
 			add("  " + buf.String())
 		}
+		add("  " + p.dim("Claude / Gemini：本地无额度数据，用各自 CLI 的 /status 查看"))
 	} else if v.MagpieErr != "" {
 		add("  " + p.dim("magpie 离线（"+Clip(v.MagpieErr, inner-14)+"）"))
 	}
