@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/songjiarong/mtok/internal/quota"
 )
 
 func TestWidthCountsCJKAsTwo(t *testing.T) {
@@ -91,7 +93,7 @@ func TestRenderHasBillingDisclaimer(t *testing.T) {
 	if !strings.Contains(buf.String(), "非账单") {
 		t.Fatal("missing not-a-bill disclaimer")
 	}
-	if !strings.Contains(buf.String(), "magpie 剩余额度") {
+	if !strings.Contains(buf.String(), "剩余额度") {
 		t.Fatal("missing quota block")
 	}
 }
@@ -118,8 +120,99 @@ func TestRenderJSON(t *testing.T) {
 	if len(got.Rows) != 2 || got.By != "model" || got.Totals.Input != 169400 {
 		t.Fatalf("unexpected json: %+v", got)
 	}
+	if got.SchemaVersion != JSONSchemaVersion {
+		t.Fatalf("schema_version = %q", got.SchemaVersion)
+	}
 	if got.Cost.Note == "" {
 		t.Fatal("cost note missing")
+	}
+}
+
+func TestRenderJSONIncludesBudget(t *testing.T) {
+	var buf bytes.Buffer
+	v := sampleView()
+	v.Budget = &Budget{
+		Currency: "CNY",
+		OK:       false,
+		Daily:    &BudgetPeriod{Limit: 10, Spent: 12, Currency: "CNY", Exceeded: true},
+	}
+	if err := v.RenderJSON(&buf, "test"); err != nil {
+		t.Fatal(err)
+	}
+	var got JSON
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Budget == nil || got.Budget.Daily == nil || !got.Budget.Daily.Exceeded || got.Budget.OK {
+		t.Fatalf("unexpected budget json: %+v", got.Budget)
+	}
+}
+
+func TestSchemaJSON(t *testing.T) {
+	var buf bytes.Buffer
+	if err := SchemaJSON(&buf); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		SchemaVersion string         `json:"schema_version"`
+		ExitCodes     map[string]int `json:"exit_codes"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.SchemaVersion != JSONSchemaVersion || got.ExitCodes["budget_exceeded"] != 3 {
+		t.Fatalf("unexpected schema: %+v", got)
+	}
+}
+
+func TestRenderQuotaJSONIncludesSource(t *testing.T) {
+	var buf bytes.Buffer
+	qs := []Quota{{
+		Provider:   "codex",
+		Name:       "Codex Plus",
+		Remaining:  16,
+		Detail:     "5h16% 7d32%",
+		Source:     quota.SourceCodex,
+		ObservedAt: "2026-11-17T11:33:48Z",
+		Windows: []quota.Window{{
+			Label: "5h", UsedPercent: 84, Remaining: 16,
+			WindowMinutes: 300, ResetsAt: 1794921702,
+		}},
+	}}
+	now := time.Date(2026, 11, 17, 11, 40, 0, 0, time.UTC)
+	if err := RenderQuotaJSON(&buf, qs, []string{"note"}, now); err != nil {
+		t.Fatal(err)
+	}
+	var got QuotaJSON
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.SchemaVersion != JSONSchemaVersion || len(got.Quotas) != 1 {
+		t.Fatalf("unexpected quota json: %+v", got)
+	}
+	if got.Quotas[0].Source != quota.SourceCodex || len(got.Quotas[0].Windows) != 1 {
+		t.Fatalf("missing source/windows: %+v", got.Quotas[0])
+	}
+}
+
+func TestRenderQuotasShowsReset(t *testing.T) {
+	var buf bytes.Buffer
+	v := &View{
+		Now:   time.Date(2026, 11, 17, 11, 40, 0, 0, time.UTC),
+		Width: 64,
+		Quotas: []Quota{{
+			Provider:  "codex",
+			Name:      "Codex Plus",
+			Remaining: 16,
+			Detail:    "5h16% 7d32%",
+			Source:    quota.SourceCodex,
+			Windows:   []quota.Window{{Label: "5h", Remaining: 16, ResetsAt: 1794921702}},
+		}},
+	}
+	v.RenderQuotas(&buf)
+	s := buf.String()
+	if !strings.Contains(s, "Codex Plus") || !strings.Contains(s, "5h16% 7d32%") || !strings.Contains(s, "重置") {
+		t.Fatalf("quota view missing fields:\n%s", s)
 	}
 }
 

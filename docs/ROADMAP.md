@@ -56,18 +56,19 @@
 - 看穿 magpie：route 记录按 (day,agent) 被明细替代；`doctor` 对账 0.0%。
 
 ### Phase 1 — 可发布、可被信任（v0.3，约 2–3 周）
-1. **多来源额度看板**（最高价值）：从本地日志读额度，不调厂商 API、无封号风险。
-   - Codex：`~/.codex/sessions/**/rollout-*.jsonl` 的 `event_msg/token_count.rate_limits.{primary,secondary}`（含 5h/周窗口 used_percent 与 resets_at）——**用户最近被 Codex 5h 限额背刺，数据就在本地**。
-   - magpie：已有 `/v1/magpie/quotas`。
+1. ✅ **多来源额度看板**（v0.3.0 已完成）：从本地日志读额度，不调厂商 API、无封号风险。
+   - Codex：`~/.codex/sessions/**/rollout-*.jsonl[.zst]` 的 `event_msg/token_count.rate_limits.{primary,secondary}`（含 5h/周窗口 used_percent 与 resets_at）。
+   - magpie：已有 `/v1/magpie/quotas`；本地 Codex 读数优先，避免重复。
    - Claude/Gemini：本地无可靠额度字段，标注「用各自 CLI 的 /status 查看」。
-   - 输出：`mtok` 底部一段「额度」区，`mtok quota` 子命令，`--json` 含 `quotas`。
-   验收：Codex 5h/周 percent 与 App 一致（±2%）；`mtok quota --json` 稳定。
-2. **预算门禁**：`config.yaml` 设 `budget.daily` / `budget.monthly`（按货币）；`mtok --check` 超预算返回非 0，供 CI/脚本用；`mtok` 正常输出时高亮超预算。
-   验收：超预算 exit code≠0；未超=0；`--json` 有 `budget` 块。
-3. **OpenCode / OpenClaw 直连**：读其 SQLite 本地库。方案：可选构建标签 `-tags sqlite`（`modernc.org/sqlite` 纯 Go），默认构建保持零依赖；或先支持「若系统有 sqlite3 可执行文件则调用」。
+   - 输出：`mtok` 底部「剩余额度」区，`mtok quota` 子命令，`--json` 含 `quotas`。
+   - 缓存：首次扫描归档约 4s，之后只扫新改动文件，命中约 50ms。
+   验收：本机读数与 Codex 窗口一致；`mtok quota --json` 稳定。
+2. ✅ **预算门禁**（v0.3.0 已完成）：`config.yaml` 的 `budget.daily` / `budget.monthly` 按 `currency` 计价；`mtok --check` 超预算返回 3；`--json` 有 `budget` 块。
+3. ✅ **JSON schema 与命令**（v0.3.0 已完成）：`--json` 带 `schema_version`，`mtok schema` 输出字段与退出码契约。
+4. ⬜ **OpenCode / OpenClaw 直连**：读其 SQLite 本地库。方案：可选构建标签 `-tags sqlite`（`modernc.org/sqlite` 纯 Go），默认构建保持零依赖；或先支持「若系统有 sqlite3 可执行文件则调用」。
    验收：直连用量与工具界面一致；默认构建仍零依赖。
-4. **发布工程**：GitHub 仓库 + Release（三平台产物 + checksums + CHANGELOG）；scoop/homebrew 清单；GitHub Actions 三平台构建/测试；`--json` schema 版本号 + `mtok schema`。
-5. **文档与社区**：README 精简 Quickstart、`docs/caliber.md`（口径）、`docs/adapters.md` 完善、CONTRIBUTING、Issue 模板。
+5. ⬜ **发布工程**：GitHub 仓库 + Release（三平台产物 + checksums + CHANGELOG）；scoop/homebrew 清单；GitHub Actions 三平台构建/测试。
+6. ⬜ **文档与社区**：README 精简 Quickstart、`docs/caliber.md`（口径）、`docs/adapters.md` 完善、CONTRIBUTING、Issue 模板。
 
 ### Phase 2 — 洞察与集成（v0.4，约 3–4 周）
 - **项目/会话维度**：从 cwd/项目路径归档，输出「哪个项目最费钱」「最贵的 10 个会话」「缓存命中率」。
@@ -106,9 +107,9 @@
 
 ## 7. 接下来 10 个可执行任务（建议顺序）
 
-1. Codex 额度解析（读 rate_limits）+ `mtok quota` + `--json` quotas（**直接解决 5h 额度焦虑**）。
-2. `--check` 预算门禁 + 配置项 + 退出码。
-3. `--json` schema 版本号与 `mtok schema`。
+1. ✅ Codex 额度解析（读 rate_limits）+ `mtok quota` + `--json` quotas（v0.3.0）。
+2. ✅ `--check` 预算门禁 + 配置项 + 退出码（v0.3.0）。
+3. ✅ `--json` schema 版本号与 `mtok schema`（v0.3.0）。
 4. 建 GitHub 仓库、Actions 三平台构建 + 测试、首版 Release + checksums。
 5. scoop/homebrew 清单发布；`go install` 冒烟。
 6. OpenCode SQLite 可选构建（`-tags sqlite`）。

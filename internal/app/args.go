@@ -33,6 +33,7 @@ type options struct {
 	noMagpie bool
 	noColor  bool
 	usd      bool
+	check    bool
 	width    int
 	top      int
 	initCfg  bool
@@ -99,6 +100,8 @@ func parse(argv []string) (options, error) {
 				o.noColor = true
 			case "usd":
 				o.usd = true
+			case "check":
+				o.check = true
 			case "init":
 				o.initCfg = true
 			case "help", "h", "?":
@@ -113,7 +116,7 @@ func parse(argv []string) (options, error) {
 		}
 		lower := strings.ToLower(arg)
 		switch lower {
-		case "doctor", "adapters", "config", "version", "help", "completion":
+		case "doctor", "adapters", "config", "quota", "schema", "version", "help", "completion":
 			if o.cmd == "" {
 				o.cmd = lower
 			} else if o.rangeArg == "" {

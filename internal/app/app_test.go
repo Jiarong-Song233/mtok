@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/songjiarong/mtok/internal/render"
 	"github.com/songjiarong/mtok/internal/store"
 )
 
@@ -74,6 +75,39 @@ func TestSpanLabel(t *testing.T) {
 	}
 	if got := spanLabel(span{since: "0000-01-01", until: "2026-11-15"}, nil); got != "—" {
 		t.Errorf("empty all = %q", got)
+	}
+}
+
+func TestParseQuotaSchemaAndCheck(t *testing.T) {
+	o, err := parse([]string{"quota", "--json", "--check"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.cmd != "quota" || !o.json || !o.check {
+		t.Fatalf("unexpected options %+v", o)
+	}
+	o, err = parse([]string{"schema"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.cmd != "schema" {
+		t.Fatalf("schema command = %q", o.cmd)
+	}
+}
+
+func TestExitForBudget(t *testing.T) {
+	if got := exitFor(options{check: true}, &render.View{}); got != 0 {
+		t.Fatalf("no budget should exit 0, got %d", got)
+	}
+	v := &render.View{Budget: &render.Budget{
+		Currency: "CNY",
+		Daily:    &render.BudgetPeriod{Limit: 10, Spent: 12, Exceeded: true},
+	}}
+	if got := exitFor(options{check: true}, v); got != 3 {
+		t.Fatalf("budget breach should exit 3, got %d", got)
+	}
+	if got := exitFor(options{}, v); got != 0 {
+		t.Fatalf("normal report should exit 0, got %d", got)
 	}
 }
 

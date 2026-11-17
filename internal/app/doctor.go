@@ -296,6 +296,8 @@ func (e *env) showConfig(o options) int {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "  %-13s width=%d top=%d currency=%s rate=%.2f magpie=%v zstd=%v\n",
 		"settings", e.set.Width, e.set.Top, e.set.Currency, e.set.Rate, e.set.Magpie, e.set.Zstd)
+	fmt.Fprintf(w, "  %-13s daily=%g monthly=%g (0 = unset)\n",
+		"budget", e.set.BudgetDaily, e.set.BudgetMonthly)
 	for _, a := range e.adapters {
 		if m, ok := a.(*adapters.Magpie); ok {
 			state := e.dim("  [absent]")

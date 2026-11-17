@@ -20,8 +20,8 @@
   magpie 明细 11 条已替代 1 条 route 记录；直连日志照常计入
   未定价: Codex-Auto-Review
   ──────────────────────────────────────────────────────────────
-  magpie 剩余额度
-  codex 5h100% 7d55% cursor 88%         grok 100%
+  剩余额度
+  codex(本地) 5h84% 7d32% cursor 88%    grok 100%
   qoder-cn 41%×2     raccoon 23%        trae-cn 2%
   workbuddy 39%×2
 ```
@@ -74,15 +74,20 @@ mtok all                 全部历史
 mtok 2026-11-05          指定某天
 mtok --since 2026-11-01 --until 2026-11-15
 mtok --json              机器可读（给脚本 / 状态栏用）
+mtok --check             预算门禁：超预算退出码 3
 mtok --by-agent          按来源汇总，关闭跨厂商合并
 mtok --rebuild           清空聚合库后全量重建
+mtok quota               只看剩余额度（Codex 本地 + magpie）
 mtok doctor              各来源自检 + 与 magpie 对账
 mtok adapters            列出 adapter、路径、prefilter、加载状态
 mtok config              显示配置与数据路径（--init 生成默认配置）
+mtok schema              输出 --json 的稳定 schema 描述
 mtok version
 ```
 
-常用选项：`--width/-w N`（默认 64）、`--top/-n N`（默认 8）、`--usd`、`--no-magpie`（纯本地模式）、`--no-sync`（只查库不扫日志）、`--no-color`。
+常用选项：`--width/-w N`（默认 64）、`--top/-n N`（默认 8）、`--usd`、`--no-magpie`（不读代理明细与代理额度，本地额度仍读）、`--no-sync`（只查库不扫日志）、`--no-color`。
+
+额度来自本机 Codex `sessions/**/rollout-*.jsonl[.zst]` 的 `rate_limits` 与本地 magpie。首次读取归档约几秒，之后只扫改动文件，缓存命中约 50ms。`--json` 带 `schema_version`，契约用 `mtok schema` 查看。预算写在 `~/.config/mtok/config.yaml` 的 `budget.daily` / `budget.monthly`，单位是 `currency` 指定的币种。Claude / Gemini 的剩余额度仍用各自 CLI 的 `/status` 查看。
 
 输出严格按终端列宽裁剪（CJK 记 2 列），管道/重定向时自动去色。
 

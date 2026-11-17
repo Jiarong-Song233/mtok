@@ -78,6 +78,21 @@ func Run(a Args) int {
 		fmt.Fprintln(a.Stdout, "wrote default config to "+paths.ConfigDir)
 		return 0
 	}
+	if o.cmd == "schema" {
+		if err := render.SchemaJSON(a.Stdout); err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		return 0
+	}
+	if o.cmd == "quota" {
+		set, _, err := config.Load(paths)
+		if err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		return runQuota(a, paths, set, o)
+	}
 
 	e, err := load(a, paths)
 	if err != nil {
@@ -255,17 +270,8 @@ func (e *env) report(o options) int {
 	e.queryMS = time.Since(aggStart).Milliseconds()
 	view.Sync = e.syncLine(o)
 
-	if !o.noMagpie && e.set.Magpie {
-		c := magpie.New(e.set.MagpieURL)
-		if qs, err := c.Quotas(); err == nil {
-			for _, q := range qs {
-				view.Quotas = append(view.Quotas, render.Quota{Provider: q.Provider, Name: q.Name, Remaining: q.Remaining, Detail: quotaDetail(q)})
-			}
-			view.MagpieOK = true
-		} else {
-			view.MagpieErr = trimErr(err)
-		}
-	}
+	view.Quotas, view.QuotaNotes = collectQuotas(e.paths, e.set, o.noMagpie)
+	view.Budget = e.budgetStatus(o, now)
 	if o.usd {
 		view.Currency = "USD"
 	}
@@ -275,11 +281,38 @@ func (e *env) report(o options) int {
 			fmt.Fprintln(e.args.Stderr, "mtok: "+err.Error())
 			return 1
 		}
-		return 0
+		return exitFor(o, view)
 	}
 	view.Color = !o.noColor && e.args.IsTTY && os.Getenv("NO_COLOR") == ""
 	view.Render(e.args.Stdout)
+	return exitFor(o, view)
+}
+
+// exitFor maps a budget breach to a script-friendly process status.
+func exitFor(o options, v *render.View) int {
+	if o.check && v.Budget.Exceeded() {
+		return 3
+	}
 	return 0
+}
+
+// priceFn adapts the pricing table to agg's callback shape.
+func (e *env) priceFn() func(string) (float64, float64, float64, float64, bool) {
+	return func(name string) (float64, float64, float64, float64, bool) {
+		p, ok := e.price.Lookup(name)
+		return p.Input, p.Output, p.CacheRead, p.CacheWrite, ok
+	}
+}
+
+// displayRate converts USD reference prices into the configured currency.
+func (e *env) displayRate() float64 {
+	if strings.EqualFold(e.set.Currency, "USD") || e.set.Currency == "$" {
+		return 1
+	}
+	if e.set.Rate <= 0 {
+		return 7.2
+	}
+	return e.set.Rate
 }
 
 // buildView aggregates store rows into the render model.
@@ -290,10 +323,7 @@ func (e *env) buildView(o options, sp span, now time.Time) *render.View {
 		Until:         sp.until,
 		ByAgent:       o.byAgent,
 		ExcludeMagpie: o.noMagpie || !e.set.Magpie,
-		Price: func(name string) (float64, float64, float64, float64, bool) {
-			p, ok := e.price.Lookup(name)
-			return p.Input, p.Output, p.CacheRead, p.CacheWrite, ok
-		},
+		Price:         e.priceFn(),
 	}
 	res := agg.Build(rows, aggOpt)
 
@@ -435,15 +465,18 @@ func usage(w io.Writer, version string) {
 		"  --width, -w N        最大行宽（默认 64）",
 		"  --top, -n N          表格最多显示多少行（默认 8）",
 		"  --usd                以美元显示参考价",
-		"  --no-magpie          纯本地模式：不读代理明细、不查额度",
+		"  --check              预算门禁：超预算退出码 3",
+		"  --no-magpie          不读代理明细与代理额度；本地额度仍读",
 		"  --no-sync            跳过日志扫描，只查本地聚合库",
 		"  --rebuild            清空聚合库后全量重建",
 		"  --no-color           强制去色",
 		"",
 		"  命令",
+		"  mtok quota           只看剩余额度（Codex 本地 + magpie）",
 		"  mtok doctor          各来源日志、字段与口径自检",
 		"  mtok adapters        列出 adapter 与加载状态",
 		"  mtok config          显示配置与数据路径（--init 生成默认配置）",
+		"  mtok schema          输出 --json 的稳定 schema 描述",
 		"  mtok version         版本信息",
 		"",
 		"  数据全部来自本机日志，不上传；金额为参考价，非账单。",

@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/songjiarong/mtok/internal/quota"
 )
 
 // ANSI helpers -------------------------------------------------------------
@@ -16,6 +18,9 @@ import (
 const (
 	reset = "\x1b[0m"
 )
+
+// JSONSchemaVersion is bumped whenever the machine-readable shape changes.
+const JSONSchemaVersion = "1.0"
 
 // Painter applies colour only when the output is a terminal.
 type Painter struct{ On bool }
@@ -164,36 +169,57 @@ type ModelRow struct {
 // Total returns all tokens of the row.
 func (m ModelRow) Total() int64 { return m.Input + m.Output + m.CacheRead + m.CacheWrite }
 
-// Quota is one provider's remaining allowance from magpie.
-type Quota struct {
-	Provider  string  `json:"provider"`
-	Name      string  `json:"name"`
-	Remaining float64 `json:"remaining"`
-	Detail    string  `json:"detail,omitempty"`
+// Quota is kept as an alias so existing callers keep compiling while quota
+// data now carries its source and individual windows.
+type Quota = quota.Quota
+
+// BudgetPeriod is the spend against one configured limit.
+type BudgetPeriod struct {
+	Limit    float64 `json:"limit"`
+	Spent    float64 `json:"spent"`
+	Currency string  `json:"currency"`
+	Exceeded bool    `json:"exceeded"`
+}
+
+// Budget is the result of `mtok --check` and the normal-report highlight.
+type Budget struct {
+	Currency string        `json:"currency"`
+	Daily    *BudgetPeriod `json:"daily,omitempty"`
+	Monthly  *BudgetPeriod `json:"monthly,omitempty"`
+	OK       bool          `json:"ok"`
+	Note     string        `json:"note,omitempty"`
+}
+
+// Exceeded reports whether any configured limit was crossed.
+func (b *Budget) Exceeded() bool {
+	return b != nil && ((b.Daily != nil && b.Daily.Exceeded) ||
+		(b.Monthly != nil && b.Monthly.Exceeded))
 }
 
 // View is everything the renderer needs.
 type View struct {
-	Label     string
-	Span      string
-	Since     string
-	Until     string
-	Elapsed   time.Duration
-	Now       time.Time
-	Rows      []ModelRow
-	ByAgent   bool
-	Totals    ModelRow
-	Unpriced  []string
-	Rate      float64
-	Currency  string
-	Width     int
-	Top       int
-	Color     bool
-	Quotas    []Quota
-	MagpieOK  bool
-	MagpieErr string
-	Sync      string
-	Note      string
+	Label      string
+	Span       string
+	Since      string
+	Until      string
+	Elapsed    time.Duration
+	Now        time.Time
+	Rows       []ModelRow
+	ByAgent    bool
+	Totals     ModelRow
+	Unpriced   []string
+	Rate       float64
+	Currency   string
+	Width      int
+	Top        int
+	Color      bool
+	Quotas     []Quota
+	QuotaNotes []string
+	Budget     *Budget
+	MagpieOK   bool
+	MagpieErr  string
+	Sync       string
+	Note       string
 }
 
 // Render writes the human table.
@@ -300,10 +326,22 @@ func (v *View) Render(w io.Writer) {
 		}
 		add("  " + p.dim("未定价: "+Clip(txt, inner-8)))
 	}
+	if v.Budget != nil {
+		if line := budgetLine(v.Budget, sym); line != "" {
+			if v.Budget.Exceeded() {
+				add("  " + p.red(Clip(line, inner)))
+			} else {
+				add("  " + p.dim(Clip(line, inner)))
+			}
+		}
+		if v.Budget.Note != "" {
+			add("  " + p.dim(Clip(v.Budget.Note, inner)))
+		}
+	}
 	if len(v.Quotas) > 0 {
 		add(sep)
-		add("  " + p.bold("magpie 剩余额度"))
-		slot := 19
+		add("  " + p.bold("剩余额度"))
+		slot := 27
 		perRow := inner / slot
 		if perRow < 1 {
 			perRow = 1
@@ -311,17 +349,13 @@ func (v *View) Render(w io.Writer) {
 		var buf strings.Builder
 		n := 0
 		for _, q := range v.Quotas {
-			cell := q.Provider + " " + fmt.Sprintf("%.0f%%", q.Remaining)
-			if q.Detail != "" {
-				cell = q.Provider + " " + q.Detail
-			}
 			col := "31"
 			if q.Remaining >= 50 {
 				col = "32"
 			} else if q.Remaining >= 20 {
 				col = "33"
 			}
-			buf.WriteString(p.paint(col, PadR(Clip(cell, slot), slot)))
+			buf.WriteString(p.paint(col, PadR(Clip(quotaCell(q), slot), slot)))
 			n++
 			if n >= perRow {
 				add("  " + buf.String())
@@ -332,7 +366,15 @@ func (v *View) Render(w io.Writer) {
 		if n > 0 {
 			add("  " + buf.String())
 		}
+		for _, note := range v.QuotaNotes {
+			add("  " + p.dim(Clip(note, inner)))
+		}
 		add("  " + p.dim("Claude / Gemini：本地无额度数据，用各自 CLI 的 /status 查看"))
+	} else if len(v.QuotaNotes) > 0 {
+		add(sep)
+		for _, note := range v.QuotaNotes {
+			add("  " + p.dim(Clip(note, inner)))
+		}
 	} else if v.MagpieErr != "" {
 		add("  " + p.dim("magpie 离线（"+Clip(v.MagpieErr, inner-14)+"）"))
 	}
@@ -353,6 +395,169 @@ func (v *View) hasPartialCost() bool {
 		}
 	}
 	return false
+}
+
+func quotaCell(q Quota) string {
+	tag := ""
+	switch q.Source {
+	case quota.SourceCodex:
+		tag = "本地"
+	case quota.SourceMagpie:
+		tag = "magpie"
+	}
+	cell := q.Provider
+	if tag != "" {
+		cell += "(" + tag + ")"
+	}
+	if q.Detail != "" {
+		return cell + " " + q.Detail
+	}
+	return cell + " " + fmt.Sprintf("%.0f%%", q.Remaining)
+}
+
+func budgetLine(b *Budget, sym string) string {
+	parts := make([]string, 0, 2)
+	add := func(label string, p *BudgetPeriod) {
+		if p == nil {
+			return
+		}
+		s := fmt.Sprintf("预算%s %s%s/%s%s", label, sym, FmtMoney(p.Spent), sym, FmtMoney(p.Limit))
+		if p.Exceeded {
+			s += " 超限"
+		}
+		parts = append(parts, s)
+	}
+	add("今日", b.Daily)
+	add("本月", b.Monthly)
+	return strings.Join(parts, "；")
+}
+
+func quotaColor(remaining float64) string {
+	if remaining >= 50 {
+		return "32"
+	}
+	if remaining >= 20 {
+		return "33"
+	}
+	return "31"
+}
+
+func resetText(q Quota, now time.Time) string {
+	var at int64
+	for _, w := range q.Windows {
+		if w.ResetsAt > now.Unix() && (at == 0 || w.ResetsAt < at) {
+			at = w.ResetsAt
+		}
+	}
+	if at == 0 {
+		return ""
+	}
+	t := time.Unix(at, 0).In(now.Location())
+	if t.Year() == now.Year() && t.YearDay() == now.YearDay() {
+		return t.Format("15:04")
+	}
+	return t.Format("01-02 15:04")
+}
+
+// RenderQuotas writes the standalone `mtok quota` view.
+func (v *View) RenderQuotas(w io.Writer) {
+	p := Painter{On: v.Color}
+	width := v.Width
+	if width < 40 {
+		width = 40
+	}
+	inner := width - 2
+	if inner < 30 {
+		inner = 30
+	}
+	var lines []string
+	add := func(s string) { lines = append(lines, s) }
+	head := "  " + p.title("mtok 额度") + p.bold("  "+v.Now.Format("2006-01-02 15:04"))
+	add(head)
+	add("  " + p.dim(strings.Repeat("─", inner)))
+	if len(v.Quotas) == 0 {
+		add("  " + p.dim("没有可用的额度数据"))
+	}
+	for _, q := range v.Quotas {
+		label := q.Provider
+		if q.Name != "" {
+			label += " · " + q.Name
+		}
+		if q.Source != "" {
+			label += " [" + q.Source + "]"
+		}
+		add("  " + p.bold(Clip(label, inner)))
+		detail := q.Detail
+		if detail == "" {
+			detail = fmt.Sprintf("%.0f%%", q.Remaining)
+		}
+		line := "    剩余 " + detail
+		if reset := resetText(q, v.Now); reset != "" {
+			line += " · 重置 " + reset
+		}
+		if t, err := time.Parse(time.RFC3339, q.ObservedAt); err == nil {
+			line += " · 观测 " + t.In(v.Now.Location()).Format("01-02 15:04")
+		}
+		add("  " + p.paint(quotaColor(q.Remaining), Clip(line, inner)))
+	}
+	for _, note := range v.QuotaNotes {
+		add("  " + p.dim(Clip(note, inner)))
+	}
+	add("  " + p.dim("Claude / Gemini：本地无额度数据，用各自 CLI 的 /status 查看"))
+	for _, l := range lines {
+		if Width(stripAnsi(l)) > width {
+			l = Clip(stripAnsi(l), width)
+		}
+		fmt.Fprintln(w, l)
+	}
+}
+
+// SchemaJSON prints the stable machine-readable contract for scripts.
+func SchemaJSON(w io.Writer) error {
+	doc := struct {
+		SchemaVersion string         `json:"schema_version"`
+		Commands      []string       `json:"commands"`
+		Report        []string       `json:"report_fields"`
+		Quota         []string       `json:"quota_fields"`
+		Budget        []string       `json:"budget_fields"`
+		Sources       []string       `json:"sources"`
+		ExitCodes     map[string]int `json:"exit_codes"`
+	}{
+		SchemaVersion: JSONSchemaVersion,
+		Commands:      []string{"report", "quota", "doctor", "adapters", "config", "schema", "version"},
+		Report:        []string{"schema_version", "range", "since", "until", "totals", "group_by", "rows", "cost", "quotas", "budget", "meta"},
+		Quota:         []string{"provider", "name", "remaining", "detail", "source", "observed_at", "windows"},
+		Budget:        []string{"currency", "daily", "monthly", "ok", "note"},
+		Sources:       []string{quota.SourceCodex, quota.SourceMagpie},
+		ExitCodes:     map[string]int{"ok": 0, "usage": 2, "runtime": 1, "budget_exceeded": 3},
+	}
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(doc)
+}
+
+// QuotaJSON is the machine-readable shape of `mtok quota --json`.
+type QuotaJSON struct {
+	SchemaVersion string   `json:"schema_version"`
+	Quotas        []Quota  `json:"quotas"`
+	Notes         []string `json:"notes,omitempty"`
+	Generated     string   `json:"generated"`
+}
+
+// RenderQuotaJSON writes the standalone quota report.
+func RenderQuotaJSON(w io.Writer, quotas []Quota, notes []string, now time.Time) error {
+	if quotas == nil {
+		quotas = []Quota{}
+	}
+	out := QuotaJSON{
+		SchemaVersion: JSONSchemaVersion,
+		Quotas:        quotas,
+		Notes:         notes,
+		Generated:     now.Format(time.RFC3339),
+	}
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
 }
 
 // moneyLabel is the currency symbol shown in the header column.
@@ -404,15 +609,17 @@ func stripAnsi(s string) string {
 
 // JSON is the machine-readable shape of a report.
 type JSON struct {
-	Range  string     `json:"range"`
-	Since  string     `json:"since"`
-	Until  string     `json:"until"`
-	Totals ModelRow   `json:"totals"`
-	By     string     `json:"group_by"`
-	Rows   []ModelRow `json:"rows"`
-	Cost   JSONCost   `json:"cost"`
-	Quotas []Quota    `json:"quotas,omitempty"`
-	Meta   JSONMeta   `json:"meta"`
+	SchemaVersion string     `json:"schema_version"`
+	Range         string     `json:"range"`
+	Since         string     `json:"since"`
+	Until         string     `json:"until"`
+	Totals        ModelRow   `json:"totals"`
+	By            string     `json:"group_by"`
+	Rows          []ModelRow `json:"rows"`
+	Cost          JSONCost   `json:"cost"`
+	Quotas        []Quota    `json:"quotas,omitempty"`
+	Budget        *Budget    `json:"budget,omitempty"`
+	Meta          JSONMeta   `json:"meta"`
 }
 
 // JSONCost states how the reference price was produced.
@@ -444,12 +651,13 @@ func (v *View) RenderJSON(w io.Writer, version string) error {
 		group = "agent"
 	}
 	out := JSON{
-		Range:  v.Label,
-		Since:  v.Since,
-		Until:  v.Until,
-		Totals: v.Totals,
-		By:     group,
-		Rows:   rows,
+		SchemaVersion: JSONSchemaVersion,
+		Range:         v.Label,
+		Since:         v.Since,
+		Until:         v.Until,
+		Totals:        v.Totals,
+		By:            group,
+		Rows:          rows,
 		Cost: JSONCost{
 			Currency: v.moneyLabel(),
 			Rate:     v.Rate,
@@ -457,6 +665,7 @@ func (v *View) RenderJSON(w io.Writer, version string) error {
 			Note:     "reference price, not a bill",
 		},
 		Quotas: v.Quotas,
+		Budget: v.Budget,
 		Meta: JSONMeta{
 			Version:   version,
 			ElapsedMS: v.Elapsed.Milliseconds(),

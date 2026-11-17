@@ -10,6 +10,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// BudgetConfig holds optional spend limits in the configured currency.
+type BudgetConfig struct {
+	Daily   *float64 `yaml:"daily"`
+	Monthly *float64 `yaml:"monthly"`
+}
+
 // Config mirrors config.yaml. Pointers keep "unset" distinguishable from zero
 // so file values only override defaults that were actually written.
 type Config struct {
@@ -24,34 +30,38 @@ type Config struct {
 	Agents      map[string]bool `yaml:"agents"`
 	PricingFile string          `yaml:"pricing_file"`
 	DataDir     string          `yaml:"data_dir"`
+	Budget      BudgetConfig    `yaml:"budget"`
 	// Agents lists the built-in adapters that should stay enabled; a false
 	// value disables the adapter for this machine.
 }
 
 // Settings is the resolved configuration used by the CLI.
 type Settings struct {
-	Width       int
-	Top         int
-	Currency    string
-	Rate        float64
-	Magpie      bool
-	MagpieURL   string
-	MagpieUsage string // proxy call journal (~/.config/magpie/usage.jsonl)
-	Zstd        bool
-	Disabled    map[string]bool
-	Pricing     string // absolute path of the pricing file to load
+	Width         int
+	Top           int
+	Currency      string
+	Rate          float64
+	Magpie        bool
+	MagpieURL     string
+	MagpieUsage   string // proxy call journal (~/.config/magpie/usage.jsonl)
+	Zstd          bool
+	BudgetDaily   float64 // zero means unset
+	BudgetMonthly float64 // zero means unset
+	Disabled      map[string]bool
+	Pricing       string // absolute path of the pricing file to load
 }
 
 // Paths holds every location mtok touches.
 type Paths struct {
-	Home      string
-	ConfigDir string
-	DataDir   string
-	DB        string
-	Config    string
-	Aliases   string
-	Pricing   string
-	Adaptersd string
+	Home       string
+	ConfigDir  string
+	DataDir    string
+	DB         string
+	QuotaCache string
+	Config     string
+	Aliases    string
+	Pricing    string
+	Adaptersd  string
 }
 
 // Resolve computes the paths, honouring MTOK_CONFIG_DIR / MTOK_DATA_DIR / MTOK_DB.
@@ -80,14 +90,15 @@ func Resolve() (Paths, error) {
 		db = filepath.Join(dataDir, "mtok.db")
 	}
 	return Paths{
-		Home:      home,
-		ConfigDir: cfgDir,
-		DataDir:   dataDir,
-		DB:        db,
-		Config:    filepath.Join(cfgDir, "config.yaml"),
-		Aliases:   filepath.Join(cfgDir, "aliases.yaml"),
-		Pricing:   filepath.Join(cfgDir, "pricing.json"),
-		Adaptersd: filepath.Join(cfgDir, "adapters.d"),
+		Home:       home,
+		ConfigDir:  cfgDir,
+		DataDir:    dataDir,
+		DB:         db,
+		QuotaCache: filepath.Join(dataDir, "quota-cache.json"),
+		Config:     filepath.Join(cfgDir, "config.yaml"),
+		Aliases:    filepath.Join(cfgDir, "aliases.yaml"),
+		Pricing:    filepath.Join(cfgDir, "pricing.json"),
+		Adaptersd:  filepath.Join(cfgDir, "adapters.d"),
 	}, nil
 }
 
@@ -131,6 +142,12 @@ func Load(p Paths) (Settings, Config, error) {
 	}
 	if raw.Rate > 0 {
 		s.Rate = raw.Rate
+	}
+	if raw.Budget.Daily != nil && *raw.Budget.Daily > 0 {
+		s.BudgetDaily = *raw.Budget.Daily
+	}
+	if raw.Budget.Monthly != nil && *raw.Budget.Monthly > 0 {
+		s.BudgetMonthly = *raw.Budget.Monthly
 	}
 	if raw.Magpie != nil {
 		s.Magpie = *raw.Magpie
@@ -196,6 +213,9 @@ width: 64            # max output width in terminal columns
 top: 8               # models shown in the table
 currency: CNY        # CNY renders ¥, USD renders $
 rate: 7.2            # USD -> CNY conversion for the reference price
+# budget:            # spend limits in the chosen currency; mtok --check exits 3 when exceeded
+#   daily: 30
+#   monthly: 600
 magpie: true         # read the local magpie journal + quotas (false = local logs only)
 magpie_url: http://127.0.0.1:3425
 # magpie_usage_file: ~/.config/magpie/usage.jsonl   # override the call journal path
