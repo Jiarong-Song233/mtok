@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.1 — 2026-11-17
+
+- Reference cost now settles in USD by default; CNY remains available with `currency: CNY` and a configurable `rate`.
+- Token counts use `B` for billions; the report adds a `总和` column after `缓存` (input + output + cache read/write).
+- Add `mtok pricing` and `mtok pricing --update` to inspect the price source and rebuild `pricing.json` from the embedded table locally, with no network calls.
+- Add built-in pricing and aliases for `Hy4-Flash` (`hy4flash` / `hy4-flash-free`).
+
 ## v0.3.0 — 2026-11-17
 
 - Add a local Codex allowance reader for `~/.codex/sessions/**/rollout-*.jsonl[.zst]` events (`event_msg` / `token_count` / `rate_limits`). It reports 5h and 7-day used/remaining percentages and reset times without calling any vendor API.

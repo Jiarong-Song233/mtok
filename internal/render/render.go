@@ -121,7 +121,7 @@ func FmtNum(n int64) string {
 	f := float64(n)
 	switch {
 	case f >= 1e9:
-		return trimZeros(fmt.Sprintf("%.2f", f/1e9)) + "G"
+		return trimZeros(fmt.Sprintf("%.2f", f/1e9)) + "B"
 	case f >= 1e6:
 		return trimZeros(fmt.Sprintf("%.2f", f/1e6)) + "M"
 	case f >= 1e4:
@@ -248,9 +248,9 @@ func (v *View) Render(w io.Writer) {
 	sep := "  " + p.dim(strings.Repeat("─", inner))
 	add(sep)
 
-	// Column budget: 2 margin + model + 4 numeric columns of 7 plus separators.
+	// Column budget: 2 margin + model + 5 numeric columns of 7 plus separators.
 	const numW = 7
-	wM := inner - (numW+1)*4
+	wM := inner - (numW+1)*5
 	if wM < 12 {
 		wM = 12
 	}
@@ -265,6 +265,7 @@ func (v *View) Render(w io.Writer) {
 		p.dim(PadL("输入", numW)) + " " +
 		p.dim(PadL("输出", numW)) + " " +
 		p.dim(PadL("缓存", numW)) + " " +
+		p.dim(PadL("总和", numW)) + " " +
 		p.dim(PadL(v.moneyLabel(), numW)))
 
 	if len(v.Rows) == 0 {
@@ -293,6 +294,7 @@ func (v *View) Render(w io.Writer) {
 				p.green(PadL(FmtNum(r.Input), numW)) + " " +
 				p.cyan(PadL(FmtNum(r.Output), numW)) + " " +
 				p.magenta(PadL(FmtNum(r.CacheRead+r.CacheWrite), numW)) + " " +
+				p.green(PadL(FmtNum(r.Total()), numW)) + " " +
 				p.yellow(PadL(cost, numW)))
 		}
 		if rest != "" {
@@ -305,13 +307,18 @@ func (v *View) Render(w io.Writer) {
 		p.green(PadL(FmtNum(t.Input), numW)) + " " +
 		p.cyan(PadL(FmtNum(t.Output), numW)) + " " +
 		p.magenta(PadL(FmtNum(t.CacheRead+t.CacheWrite), numW)) + " " +
+		p.green(PadL(FmtNum(t.Total()), numW)) + " " +
 		p.yellow(PadL(FmtMoney(t.CostUSD*v.rate()), numW)))
 
 	sym := v.Currency
 	if sym == "" {
-		sym = "¥"
+		sym = "$"
 	}
-	add("  " + p.dim(fmt.Sprintf("%s=参考价，非账单；缓存=读+写；汇率 %.2f；同一底模跨厂商合并为一行", sym, v.rate())))
+	if v.isUSD() {
+		add("  " + p.dim(sym+"=参考价，非账单；缓存=读+写；总和=输入+输出+缓存；同一底模跨厂商合并为一行"))
+	} else {
+		add("  " + p.dim(fmt.Sprintf("%s=参考价，非账单；缓存=读+写；总和=输入+输出+缓存；汇率 %.2f；同一底模跨厂商合并为一行", sym, v.rate())))
+	}
 	if v.hasPartialCost() {
 		add("  " + p.dim("* = 该行含未定价模型，仅为已定价部分"))
 	}
@@ -524,7 +531,7 @@ func SchemaJSON(w io.Writer) error {
 		ExitCodes     map[string]int `json:"exit_codes"`
 	}{
 		SchemaVersion: JSONSchemaVersion,
-		Commands:      []string{"report", "quota", "doctor", "adapters", "config", "schema", "version"},
+		Commands:      []string{"report", "quota", "doctor", "adapters", "config", "pricing", "schema", "version"},
 		Report:        []string{"schema_version", "range", "since", "until", "totals", "group_by", "rows", "cost", "quotas", "budget", "meta"},
 		Quota:         []string{"provider", "name", "remaining", "detail", "source", "observed_at", "windows"},
 		Budget:        []string{"currency", "daily", "monthly", "ok", "note"},
@@ -660,7 +667,7 @@ func (v *View) RenderJSON(w io.Writer, version string) error {
 		Rows:          rows,
 		Cost: JSONCost{
 			Currency: v.moneyLabel(),
-			Rate:     v.Rate,
+			Rate:     v.rate(),
 			Unpriced: unp,
 			Note:     "reference price, not a bill",
 		},

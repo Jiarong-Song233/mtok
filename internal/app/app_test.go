@@ -78,6 +78,16 @@ func TestSpanLabel(t *testing.T) {
 	}
 }
 
+func TestParsePricingUpdate(t *testing.T) {
+	o, err := parse([]string{"pricing", "--update"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.cmd != "pricing" || !o.pricingUpdate {
+		t.Fatalf("unexpected options %+v", o)
+	}
+}
+
 func TestParseQuotaSchemaAndCheck(t *testing.T) {
 	o, err := parse([]string{"quota", "--json", "--check"})
 	if err != nil {

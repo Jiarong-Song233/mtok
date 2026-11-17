@@ -52,7 +52,7 @@ type Table struct {
 // Load builds the table: built-in prices first, then the user file overrides.
 // A missing or broken user file is reported but never fatal.
 func Load(path string, rateOverride float64) (*Table, error) {
-	t := &Table{byKey: map[string]Price{}, Rate: 7.2, Currency: "CNY"}
+	t := &Table{byKey: map[string]Price{}, Rate: 7.2, Currency: "USD"}
 	if err := t.merge(builtinJSON); err != nil {
 		return t, fmt.Errorf("builtin pricing: %w", err)
 	}

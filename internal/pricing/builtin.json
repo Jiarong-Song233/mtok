@@ -1,6 +1,6 @@
 {
   "_note": "Reference prices in USD per million tokens, NOT a bill. cache_read/cache_write are explicit cache rates; 0 means the vendor reports cache tokens but does not bill them separately for this tier. Override any entry in ~/.config/mtok/pricing.json.",
-  "currency": { "rate": 7.2, "symbol": "¥" },
+  "currency": { "rate": 7.2, "symbol": "$" },
   "default": null,
   "models": {
     "DeepSeek-V4.1-Flash":     { "input": 0.25, "output": 1.00, "cache_read": 0.05, "cache_write": 0.25 },
@@ -34,6 +34,7 @@
     "SenseNova-6.8-Flash":      { "input": 0.15, "output": 0.60, "cache_read": 0.03, "cache_write": 0.15 },
     "SenseNova-6.8-Flash-Lite": { "input": 0.08, "output": 0.30, "cache_read": 0.02, "cache_write": 0.08 },
     "Hy4":                  { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
+    "Hy4-Flash":            { "input": 0.10, "output": 0.40, "cache_read": 0.02, "cache_write": 0.10 },
     "Hy4-Preview":          { "input": 0.35, "output": 1.40, "cache_read": 0.07, "cache_write": 0.35 },
     "Hy3":                  { "input": 0.30, "output": 1.20, "cache_read": 0.06, "cache_write": 0.30 },
 

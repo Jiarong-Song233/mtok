@@ -85,6 +85,14 @@ func Run(a Args) int {
 		}
 		return 0
 	}
+	if o.cmd == "pricing" {
+		set, _, err := config.Load(paths)
+		if err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		return runPricing(a, paths, set.Pricing, o.pricingUpdate)
+	}
 	if o.cmd == "quota" {
 		set, _, err := config.Load(paths)
 		if err != nil {
@@ -116,6 +124,39 @@ func Run(a Args) int {
 		o.rangeArg = ""
 	}
 	return e.report(o)
+}
+
+// runPricing shows where the price table comes from and refreshes the local
+// override when --update is passed. Prices are never fetched from the network.
+func runPricing(a Args, paths config.Paths, pricePath string, update bool) int {
+	tab, err := pricing.Load(pricePath, 0)
+	if err != nil {
+		fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+		return 1
+	}
+	if update {
+		if err := os.MkdirAll(filepath.Dir(pricePath), 0o755); err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		if err := os.WriteFile(pricePath, pricing.ExampleJSON(), 0o644); err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		tab, err = pricing.Load(pricePath, 0)
+		if err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		fmt.Fprintln(a.Stdout, "updated "+pricePath+" from built-in prices")
+	}
+	fmt.Fprintf(a.Stdout, "pricing file  %s\n", pricePath)
+	fmt.Fprintf(a.Stdout, "source        %s\n", tab.Source())
+	fmt.Fprintf(a.Stdout, "currency      %s (USD reference rate %.2f)\n", tab.Currency, tab.Rate)
+	if !update {
+		fmt.Fprintln(a.Stdout, "update with   mtok pricing --update  (rebuilds the file from built-in prices)")
+	}
+	return 0
 }
 
 // load resolves paths, config, aliases, prices, adapters and the store.
@@ -464,7 +505,7 @@ func usage(w io.Writer, version string) {
 		"  --by-agent, -a       按来源汇总，而不是按统一模型合并",
 		"  --width, -w N        最大行宽（默认 64）",
 		"  --top, -n N          表格最多显示多少行（默认 8）",
-		"  --usd                以美元显示参考价",
+		"  --usd                以美元显示参考价（默认已用美元）",
 		"  --check              预算门禁：超预算退出码 3",
 		"  --no-magpie          不读代理明细与代理额度；本地额度仍读",
 		"  --no-sync            跳过日志扫描，只查本地聚合库",
@@ -476,6 +517,7 @@ func usage(w io.Writer, version string) {
 		"  mtok doctor          各来源日志、字段与口径自检",
 		"  mtok adapters        列出 adapter 与加载状态",
 		"  mtok config          显示配置与数据路径（--init 生成默认配置）",
+		"  mtok pricing         显示价格表来源（--update 从内置表重建 pricing.json）",
 		"  mtok schema          输出 --json 的稳定 schema 描述",
 		"  mtok version         版本信息",
 		"",

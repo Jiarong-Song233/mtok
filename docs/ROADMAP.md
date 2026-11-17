@@ -52,7 +52,7 @@
 ### Phase 0 — 基线（已完成，v0.2.x）
 - 9 个本地 adapter（claude/codex/gemini/grok/kimi/zcode/pi/dsh + magpie journal）。
 - 增量读取（offset+size+mtime）、聚合快照（gzip+JSON 原子写、文件锁）。
-- 跨厂商模型归一化、输入/输出/缓存读/缓存写分别计价、`--json`。
+- 跨厂商模型归一化、输入/输出/缓存读/缓存写分别计价、总和列、`--json`。
 - 看穿 magpie：route 记录按 (day,agent) 被明细替代；`doctor` 对账 0.0%。
 
 ### Phase 1 — 可发布、可被信任（v0.3，约 2–3 周）
@@ -74,7 +74,7 @@
 - **项目/会话维度**：从 cwd/项目路径归档，输出「哪个项目最费钱」「最贵的 10 个会话」「缓存命中率」。
 - **导出**：`mtok export --csv` / `--prometheus`（OpenMetrics）/ `--json` schema 文档化；附 Grafana dashboard 样例。
 - **状态栏 & 实时**：`mtok statusline` 输出一行（如 `¥3.2 · 12.4M tok · 5h 78%`）供 starship/tmux/nushell；`mtok watch` 轻量 TUI 刷新。
-- **价表/别名更新**：内置表 + `mtok pricing update`（可选联网，默认关闭）+ 社区 PR 流程。
+- **价表/别名更新**：内置表 + `mtok pricing --update`（从内置表本地重建，无需联网；v0.3.1 已完成）+ 社区 PR 流程。
 - **预算通知**：超预算触发可配置的本地命令/桌面通知/webhook（含 Feishu，复用现有通道思路）。
 
 ### Phase 3 — 团队与规模化（v1.0）

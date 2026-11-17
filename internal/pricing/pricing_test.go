@@ -22,6 +22,9 @@ func TestBuiltinLookup(t *testing.T) {
 	if _, ok := tab.Lookup("Auto(未指明)"); ok {
 		t.Fatal("unpriced model should report false")
 	}
+	if p, ok := tab.Lookup("hy4-flash"); !ok || p.Input != 0.10 || p.Output != 0.40 {
+		t.Fatalf("hy4-flash should be priced, got %+v ok=%v", p, ok)
+	}
 	if tab.Rate != 7.2 {
 		t.Fatalf("default rate %v", tab.Rate)
 	}

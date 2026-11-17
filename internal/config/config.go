@@ -107,8 +107,8 @@ func Defaults() Settings {
 	return Settings{
 		Width:     64,
 		Top:       8,
-		Currency:  "CNY",
-		Rate:      7.2,
+		Currency:  "USD",
+		Rate:      7.2, // USD -> CNY reference, used only when currency is CNY
 		Magpie:    true,
 		MagpieURL: "http://127.0.0.1:3425",
 		Zstd:      true,
@@ -211,8 +211,8 @@ func Aliases(p Paths) (map[string]string, error) {
 const ExampleConfig = `# mtok configuration (all keys optional)
 width: 64            # max output width in terminal columns
 top: 8               # models shown in the table
-currency: CNY        # CNY renders ¥, USD renders $
-rate: 7.2            # USD -> CNY conversion for the reference price
+currency: USD        # USD renders $, CNY renders ¥
+rate: 7.2            # USD -> CNY conversion, used only when currency is CNY
 # budget:            # spend limits in the chosen currency; mtok --check exits 3 when exceeded
 #   daily: 30
 #   monthly: 600

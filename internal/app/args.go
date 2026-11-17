@@ -22,22 +22,23 @@ type Args struct {
 
 // options is the parsed command line.
 type options struct {
-	cmd      string
-	rangeArg string
-	since    string
-	until    string
-	json     bool
-	byAgent  bool
-	rebuild  bool
-	noSync   bool
-	noMagpie bool
-	noColor  bool
-	usd      bool
-	check    bool
-	width    int
-	top      int
-	initCfg  bool
-	help     bool
+	cmd           string
+	rangeArg      string
+	since         string
+	until         string
+	json          bool
+	byAgent       bool
+	rebuild       bool
+	noSync        bool
+	noMagpie      bool
+	noColor       bool
+	usd           bool
+	check         bool
+	width         int
+	top           int
+	initCfg       bool
+	pricingUpdate bool
+	help          bool
 }
 
 // parse turns argv into options. Flags may appear before or after the range
@@ -104,6 +105,8 @@ func parse(argv []string) (options, error) {
 				o.check = true
 			case "init":
 				o.initCfg = true
+			case "update", "update-pricing":
+				o.pricingUpdate = true
 			case "help", "h", "?":
 				o.help = true
 			case "version", "v":
@@ -116,7 +119,7 @@ func parse(argv []string) (options, error) {
 		}
 		lower := strings.ToLower(arg)
 		switch lower {
-		case "doctor", "adapters", "config", "quota", "schema", "version", "help", "completion":
+		case "doctor", "adapters", "config", "pricing", "quota", "schema", "version", "help", "completion":
 			if o.cmd == "" {
 				o.cmd = lower
 			} else if o.rangeArg == "" {

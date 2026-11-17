@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -29,5 +30,12 @@ func TestBudgetUnsetByDefault(t *testing.T) {
 	}
 	if s.BudgetDaily != 0 || s.BudgetMonthly != 0 {
 		t.Fatalf("unexpected defaults %g/%g", s.BudgetDaily, s.BudgetMonthly)
+	}
+}
+
+func TestDefaultsUseUSD(t *testing.T) {
+	s := Defaults()
+	if !strings.EqualFold(s.Currency, "USD") {
+		t.Fatalf("default currency = %q, want USD", s.Currency)
 	}
 }

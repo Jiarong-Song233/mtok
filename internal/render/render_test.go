@@ -47,7 +47,7 @@ func TestPad(t *testing.T) {
 
 func TestFmtNum(t *testing.T) {
 	cases := map[int64]string{
-		999: "999", 1500: "1.5k", 15000: "15k", 1250000: "1.25M", 3400000000: "3.4G",
+		999: "999", 1500: "1.5k", 15000: "15k", 1250000: "1.25M", 3400000000: "3.4B",
 	}
 	for n, want := range cases {
 		if got := FmtNum(n); got != want {
@@ -84,6 +84,18 @@ func TestRenderRespectsWidth(t *testing.T) {
 				t.Errorf("width %d: line %q is %d columns", w, line, got)
 			}
 		}
+	}
+}
+
+func TestRenderHasTotalColumn(t *testing.T) {
+	var buf bytes.Buffer
+	sampleView().Render(&buf)
+	s := buf.String()
+	if !strings.Contains(s, "总和") {
+		t.Fatalf("total column header missing:\n%s", s)
+	}
+	if !strings.Contains(s, "4.66B") {
+		t.Fatalf("total token count missing:\n%s", s)
 	}
 }
 

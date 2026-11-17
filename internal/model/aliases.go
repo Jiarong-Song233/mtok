@@ -94,6 +94,7 @@ var builtinAliases = map[string][]string{
 
 	// ---- 国内其它 ----
 	"Hy4":          {"hy4", "hy4free", "hy4std"},
+	"Hy4-Flash":    {"hy4-flash", "hy4flash", "hy4-flash-free", "hy4flash-free"},
 	"Hy4-Preview":  {"hy4-preview"},
 	"Hy3":          {"hy3"},
 	"Hy3-X":        {"hy3-x"},
