@@ -12,7 +12,7 @@ func TestBuiltinLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	p, ok := tab.Lookup("Claude-Opus-5.5")
-	if !ok || p.Input != 15 || p.Output != 75 || p.CacheRead != 1.5 {
+	if !ok || p.Input != 4 || p.Output != 20 || p.CacheRead != 0.2 || p.CacheWrite != 5 {
 		t.Fatalf("unexpected price %+v ok=%v", p, ok)
 	}
 	// Lookup also accepts any spelling of the canonical name.

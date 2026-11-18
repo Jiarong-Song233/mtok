@@ -9,7 +9,7 @@ import (
 
 // Build metadata, injected by scripts/build.ps1.
 var (
-	Version = "0.3.2"
+	Version = "0.3.3"
 	Commit  = "none"
 	Date    = "unknown"
 )

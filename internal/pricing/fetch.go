@@ -13,10 +13,11 @@ const LiteLLMURL = "https://raw.githubusercontent.com/BerriAI/litellm/main/model
 
 // litellmEntry mirrors the subset of LiteLLM's pricing JSON we need.
 type litellmEntry struct {
-	InputPerToken      *float64 `json:"input_cost_per_token"`
-	OutputPerToken     *float64 `json:"output_cost_per_token"`
-	CacheReadPerToken  *float64 `json:"cache_read_input_token_cost"`
-	CacheWritePerToken *float64 `json:"cache_write_input_token_cost"`
+	InputPerToken       *float64 `json:"input_cost_per_token"`
+	OutputPerToken      *float64 `json:"output_cost_per_token"`
+	CacheReadPerToken   *float64 `json:"cache_read_input_token_cost"`
+	CacheWritePerToken  *float64 `json:"cache_write_input_token_cost"`
+	CacheCreationPerTok *float64 `json:"cache_creation_input_token_cost"`
 }
 
 // FetchedPrice is a LiteLLM price plus flags for optional cache fields.
@@ -64,6 +65,10 @@ func FetchLiteLLM(url string, timeout time.Duration) (map[string]FetchedPrice, e
 		}
 		if e.CacheWritePerToken != nil {
 			fp.CacheWrite = *e.CacheWritePerToken * M
+			fp.HasCacheWrite = true
+		} else if e.CacheCreationPerTok != nil {
+			// Anthropic calls cache writes "cache creation".
+			fp.CacheWrite = *e.CacheCreationPerTok * M
 			fp.HasCacheWrite = true
 		}
 		fk := foldKey(name)

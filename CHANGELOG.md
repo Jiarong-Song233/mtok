@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.3 — 2026-11-18
+
+- Read Anthropic's `cache_creation_input_token_cost` as cache-write price during `--fetch`; this removes stale Claude cache-write rates.
+- Update built-in Claude prices to the current USD reference rates.
+
 ## v0.3.2 — 2026-11-18
 
 - Split cache read and cache write into separate report columns and price them with separate rates.

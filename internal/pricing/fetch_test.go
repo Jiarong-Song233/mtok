@@ -19,6 +19,12 @@ func TestFetchLiteLLMAndApply(t *testing.T) {
 		"azure/gpt-6.1-sol-dup": {
 			"input_cost_per_token": 9,
 			"output_cost_per_token": 9
+		},
+		"claude-opus-5-5": {
+			"input_cost_per_token": 0.000004,
+			"output_cost_per_token": 0.00002,
+			"cache_read_input_token_cost": 0.0000002,
+			"cache_creation_input_token_cost": 0.000005
 		}
 	}`
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +41,10 @@ func TestFetchLiteLLMAndApply(t *testing.T) {
 	}
 	if p.Input != 1.25 || p.Output != 10 || p.CacheRead != 0.125 || p.CacheWrite != 1.25 {
 		t.Fatalf("bad conversion: %+v", p)
+	}
+	claude, ok := got["claudeopus55"]
+	if !ok || claude.CacheWrite != 5 {
+		t.Fatalf("cache_creation should map to cache_write: %+v ok=%v", claude, ok)
 	}
 	tab, _ := Load("", 0)
 	n := tab.ApplyFetched(got)
