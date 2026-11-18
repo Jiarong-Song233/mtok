@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.5 — 2026-11-18
+
+- Merge cache read and cache write into a single `缓存` report column. Internal storage, JSON output, and pricing still keep the two rates separate.
+
 ## v0.3.4 — 2026-11-18
 
 - Refresh all Claude and GPT-6.2 built-in USD prices from LiteLLM, including separate cache read/write rates.

@@ -8,8 +8,7 @@ mtok 的目标是把不同 agent 日志里的 token 数字整理成一套可以�
 |---|---|---|
 | 输入 | 本次请求中未命中缓存的 prompt token | 与厂商的 `input_tokens` 不一定同义，按下表折算 |
 | 输出 | 厂商上报的 completion / output token | 包含 reasoning token；Codex 的 `reasoning_output_tokens` 已包含在 `output_tokens` 内 |
-| 缓存读 | 命中 prompt cache 的 token | 单列显示，按 cache read 单价计费 |
-| 缓存写 | 写入 prompt cache 的 token | 单列显示，按 cache write 单价计费 |
+| 缓存 | 缓存读（命中 prompt cache）+ 缓存写（写入 prompt cache） | 报表里合并成一列显示；计价时仍按 cache read / cache write 两个单价分开算 |
 | 总和 | 输入 + 输出 + 缓存读 + 缓存写 | 表格里的「总和」列 |
 
 金额公式：

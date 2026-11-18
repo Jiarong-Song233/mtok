@@ -248,13 +248,13 @@ func (v *View) Render(w io.Writer) {
 	sep := "  " + p.dim(strings.Repeat("─", inner))
 	add(sep)
 
-	// Column budget: 2 margin + model + 5 token columns of 6 and a money
+	// Column budget: 2 margin + model + 4 token columns of 6 and a money
 	// column of 7, plus separators.
 	const (
 		numW  = 6
 		costW = 7
 	)
-	wM := inner - 5*(numW+1) - (costW + 1) - 2
+	wM := inner - 4*(numW+1) - (costW + 1) - 2
 	if wM < 12 {
 		wM = 12
 	}
@@ -268,8 +268,7 @@ func (v *View) Render(w io.Writer) {
 	add("  " + p.bold(PadR(nameCol, wM)) + " " +
 		p.dim(PadL("输入", numW)) + " " +
 		p.dim(PadL("输出", numW)) + " " +
-		p.dim(PadL("缓存读", numW)) + " " +
-		p.dim(PadL("缓存写", numW)) + " " +
+		p.dim(PadL("缓存", numW)) + " " +
 		p.dim(PadL("总和", numW)) + " " +
 		p.dim(PadL(v.moneyLabel(), costW)))
 
@@ -298,8 +297,7 @@ func (v *View) Render(w io.Writer) {
 			add("  " + p.model(PadR(Clip(r.Name, wM), wM)) + " " +
 				p.green(PadL(FmtNum(r.Input), numW)) + " " +
 				p.cyan(PadL(FmtNum(r.Output), numW)) + " " +
-				p.magenta(PadL(FmtNum(r.CacheRead), numW)) + " " +
-				p.magenta(PadL(FmtNum(r.CacheWrite), numW)) + " " +
+				p.magenta(PadL(FmtNum(r.CacheRead+r.CacheWrite), numW)) + " " +
 				p.green(PadL(FmtNum(r.Total()), numW)) + " " +
 				p.yellow(PadL(cost, costW)))
 		}
@@ -312,8 +310,7 @@ func (v *View) Render(w io.Writer) {
 	add("  " + p.bold(PadR("合计", wM)) + " " +
 		p.green(PadL(FmtNum(t.Input), numW)) + " " +
 		p.cyan(PadL(FmtNum(t.Output), numW)) + " " +
-		p.magenta(PadL(FmtNum(t.CacheRead), numW)) + " " +
-		p.magenta(PadL(FmtNum(t.CacheWrite), numW)) + " " +
+		p.magenta(PadL(FmtNum(t.CacheRead+t.CacheWrite), numW)) + " " +
 		p.green(PadL(FmtNum(t.Total()), numW)) + " " +
 		p.yellow(PadL(FmtMoney(t.CostUSD*v.rate()), costW)))
 
