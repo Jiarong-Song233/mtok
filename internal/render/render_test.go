@@ -91,6 +91,9 @@ func TestRenderHasTotalColumn(t *testing.T) {
 	var buf bytes.Buffer
 	sampleView().Render(&buf)
 	s := buf.String()
+	if !strings.Contains(s, "缓存读") || !strings.Contains(s, "缓存写") {
+		t.Fatalf("separate cache columns missing:\n%s", s)
+	}
 	if !strings.Contains(s, "总和") {
 		t.Fatalf("total column header missing:\n%s", s)
 	}

@@ -88,6 +88,16 @@ func TestParsePricingUpdate(t *testing.T) {
 	}
 }
 
+func TestParsePricingFetch(t *testing.T) {
+	o, err := parse([]string{"pricing", "--fetch"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.cmd != "pricing" || !o.pricingFetch {
+		t.Fatalf("unexpected options %+v", o)
+	}
+}
+
 func TestParseQuotaSchemaAndCheck(t *testing.T) {
 	o, err := parse([]string{"quota", "--json", "--check"})
 	if err != nil {

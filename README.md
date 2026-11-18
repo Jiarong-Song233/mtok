@@ -3,21 +3,21 @@
 **极轻量全局 token 用量检测与计费管理器。** 单个 exe，无 Electron、无守护进程、无 Node 运行时，数据全部来自本机日志，不上传。
 
 ```
-  mtok  今天 11-15  109ms  13:22
+  mtok  今天 11-18  109ms  13:22
   扫描 503 文件 +2；新增 4 记录 / 3.5KB / 101ms / 查询 0ms
   ──────────────────────────────────────────────────────────────
-  模型                              输入    输出    缓存    总和       $
-  DeepSeek-V4.1-Flash               9.3M   1.17M 184.11M 194.6M   91.76
-  Hy4                              3.95M    403k  31.95M  36.3M   25.82
-  GPT-6-Astra                      73.9k   11.7k   8.46M  8.55M   14.26
-  GPT-6.1-Sol                       134k   20.2k   4.89M  5.04M    7.06
-  Codex-Auto-Review               180.5k   1.61k  828.2k  1.01M       —
-  GLM-5.3-Flash                   292.8k   3.24k  289.9k  585.9k    0.26
+  模型                 输入   输出  缓存读  缓存写   总和       $
+  DeepSeek-V4.1-Flash  9.3M  1.17M 184.11M    200k 195.0M   91.76
+  Hy4                 3.95M   403k  31.95M     80k  36.4M   25.82
+  GPT-6-Astra         73.9k  11.7k   8.46M     10k  8.55M   14.26
+  GPT-6.1-Sol          134k  20.2k   4.89M      5k  5.04M    7.06
+  Codex-Auto-Review  180.5k  1.61k  828.2k      0  1.01M       —
+  GLM-5.3-Flash      292.8k  3.24k  289.9k      0  585.9k    0.26
   …另有 5 行  250 tok
   ──────────────────────────────────────────────────────────────
-  合计                            13.89M    1.6M 230.02M 245.5M     138
-  $=参考价，非账单；缓存=读+写；总和=输入+输出+缓存；同一底模跨厂商合并为一行
-  magpie 明细 11 条已替代 1 条 route 记录；直连日志照常计入
+  合计                13.89M  1.6M 247.2M    295k 262.98M     138
+  $ 为估算值，非账单/非实际结算
+  magpie 明细 11 条，覆盖 1 条旧记录；直连日志照常计入
   未定价: Codex-Auto-Review
   ──────────────────────────────────────────────────────────────
   剩余额度
@@ -42,7 +42,7 @@
 **Scoop**（推荐，清单见 `scoop/mtok.json`）
 
 ```powershell
-scoop bucket add mtok https://github.com/songjiarong/scoop-mtok
+scoop bucket add mtok https://github.com/Jiarong-Song233/scoop-mtok
 scoop install mtok
 ```
 
@@ -81,14 +81,14 @@ mtok quota               只看剩余额度（Codex 本地 + magpie）
 mtok doctor              各来源自检 + 与 magpie 对账
 mtok adapters            列出 adapter、路径、prefilter、加载状态
 mtok config              显示配置与数据路径（--init 生成默认配置）
-mtok pricing             显示价格表来源（--update 从内置表重建 pricing.json）
+mtok pricing             显示价格表来源（--update 本地重建；--fetch 从 LiteLLM 在线拉取）
 mtok schema              输出 --json 的稳定 schema 描述
 mtok version
 ```
 
 常用选项：`--width/-w N`（默认 64）、`--top/-n N`（默认 8）、`--usd`（默认已用美元）、`--no-magpie`（不读代理明细与代理额度，本地额度仍读）、`--no-sync`（只查库不扫日志）、`--no-color`。
 
-金额默认以美元结算，内置价格是 USD/百万 token。想改回人民币，在 `~/.config/mtok/config.yaml` 写 `currency: CNY` 和 `rate: 7.2`。改价直接编辑 `~/.config/mtok/pricing.json`；升级 mtok 后运行 `mtok pricing --update` 可从内置表重建该文件。`mtok pricing` 会显示当前价格来源与路径。
+金额默认以美元结算，价格单位是 USD/百万 token。`缓存读` 和 `缓存写` 分开计价。想改回人民币，在 `~/.config/mtok/config.yaml` 写 `currency: CNY` 和 `rate`。改价直接编辑 `~/.config/mtok/pricing.json`；`mtok pricing --update` 从内置表重建，`mtok pricing --fetch` 从 LiteLLM 社区价格表在线拉取并更新本地文件。`mtok pricing` 显示当前价格来源与路径。
 
 额度来自本机 Codex `sessions/**/rollout-*.jsonl[.zst]` 的 `rate_limits` 与本地 magpie。首次读取归档约几秒，之后只扫改动文件，缓存命中约 50ms。`--json` 带 `schema_version`，契约用 `mtok schema` 查看。预算写在 `~/.config/mtok/config.yaml` 的 `budget.daily` / `budget.monthly`，单位是 `currency` 指定的币种。Claude / Gemini 的剩余额度仍用各自 CLI 的 `/status` 查看。
 
@@ -129,8 +129,8 @@ mtok 的做法：
 5. `mtok --no-magpie` = 纯本地模式：不读明细、不查额度，行为与之前完全一致。
 
 ```
-  合计                            13.89M    1.6M 230.02M     138
-  magpie 明细 11 条已替代 1 条 route 记录；直连日志照常计入
+  合计                 13.89M  1.6M 247.2M    295k 262.98M     138
+  magpie 明细 11 条，覆盖 1 条旧记录；直连日志照常计入
 ```
 
 **为什么用 journal 而不是只调 API**：`/v1/magpie/usage` 只支持 `today` / `7d` / `30d` / `all` 四种固定周期（传 `since/until` 会被静默忽略），无法对齐 `mtok 7d` 的按日窗口，也无法支持 `--since/--until`。journal 正是该接口的数据源（API 响应里的 `path` 字段就是它），逐行带时间戳，于是任意区间、任意按日切片都能精确对齐。API 仍然被使用——`mtok doctor` 用它对账。
@@ -162,7 +162,7 @@ mtok 的做法：
   - Claude / Gemini / ZCode / dsh / pi 的日志本身就是这样（`input_tokens` 与 `cache_read` 互斥）。
   - Codex 的 `input_tokens`、Grok 的 `prompt_tokens` **包含**缓存命中，mtok 用 `input - cached` 折算，`cached` 记入缓存读。
 - **输出**：厂商上报的 completion/output，含推理 token（Codex 的 `reasoning_output_tokens` 已包含在 `output_tokens` 内）。
-- **缓存**：表格里的「缓存」= 缓存读 + 缓存写。
+- **缓存读 / 缓存写**：两列分开显示，也按各自单价分别计价。
 - **总和**：表格里的「总和」= 输入 + 输出 + 缓存读 + 缓存写。
 - **时间归属**：按记录时间戳换算到**本机时区**的日期；没有时间戳的记录（极少数）计入扫描当天，`mtok doctor` 会报出条数。
 - **金额**：`token × 单价` 的参考价，输入/输出/缓存读/缓存写分别计价，不是账单。

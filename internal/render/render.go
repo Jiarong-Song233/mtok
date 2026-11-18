@@ -248,9 +248,13 @@ func (v *View) Render(w io.Writer) {
 	sep := "  " + p.dim(strings.Repeat("─", inner))
 	add(sep)
 
-	// Column budget: 2 margin + model + 5 numeric columns of 7 plus separators.
-	const numW = 7
-	wM := inner - (numW+1)*5
+	// Column budget: 2 margin + model + 5 token columns of 6 and a money
+	// column of 7, plus separators.
+	const (
+		numW  = 6
+		costW = 7
+	)
+	wM := inner - 5*(numW+1) - (costW + 1) - 2
 	if wM < 12 {
 		wM = 12
 	}
@@ -264,9 +268,10 @@ func (v *View) Render(w io.Writer) {
 	add("  " + p.bold(PadR(nameCol, wM)) + " " +
 		p.dim(PadL("输入", numW)) + " " +
 		p.dim(PadL("输出", numW)) + " " +
-		p.dim(PadL("缓存", numW)) + " " +
+		p.dim(PadL("缓存读", numW)) + " " +
+		p.dim(PadL("缓存写", numW)) + " " +
 		p.dim(PadL("总和", numW)) + " " +
-		p.dim(PadL(v.moneyLabel(), numW)))
+		p.dim(PadL(v.moneyLabel(), costW)))
 
 	if len(v.Rows) == 0 {
 		add("  " + p.dim("(该时间段无用量)"))
@@ -293,9 +298,10 @@ func (v *View) Render(w io.Writer) {
 			add("  " + p.model(PadR(Clip(r.Name, wM), wM)) + " " +
 				p.green(PadL(FmtNum(r.Input), numW)) + " " +
 				p.cyan(PadL(FmtNum(r.Output), numW)) + " " +
-				p.magenta(PadL(FmtNum(r.CacheRead+r.CacheWrite), numW)) + " " +
+				p.magenta(PadL(FmtNum(r.CacheRead), numW)) + " " +
+				p.magenta(PadL(FmtNum(r.CacheWrite), numW)) + " " +
 				p.green(PadL(FmtNum(r.Total()), numW)) + " " +
-				p.yellow(PadL(cost, numW)))
+				p.yellow(PadL(cost, costW)))
 		}
 		if rest != "" {
 			add("  " + p.dim(rest))
@@ -306,18 +312,19 @@ func (v *View) Render(w io.Writer) {
 	add("  " + p.bold(PadR("合计", wM)) + " " +
 		p.green(PadL(FmtNum(t.Input), numW)) + " " +
 		p.cyan(PadL(FmtNum(t.Output), numW)) + " " +
-		p.magenta(PadL(FmtNum(t.CacheRead+t.CacheWrite), numW)) + " " +
+		p.magenta(PadL(FmtNum(t.CacheRead), numW)) + " " +
+		p.magenta(PadL(FmtNum(t.CacheWrite), numW)) + " " +
 		p.green(PadL(FmtNum(t.Total()), numW)) + " " +
-		p.yellow(PadL(FmtMoney(t.CostUSD*v.rate()), numW)))
+		p.yellow(PadL(FmtMoney(t.CostUSD*v.rate()), costW)))
 
 	sym := v.Currency
 	if sym == "" {
 		sym = "$"
 	}
 	if v.isUSD() {
-		add("  " + p.dim(sym+"=参考价，非账单；缓存=读+写；总和=输入+输出+缓存；同一底模跨厂商合并为一行"))
+		add("  " + p.dim(sym+" 为估算值，非账单/非实际结算"))
 	} else {
-		add("  " + p.dim(fmt.Sprintf("%s=参考价，非账单；缓存=读+写；总和=输入+输出+缓存；汇率 %.2f；同一底模跨厂商合并为一行", sym, v.rate())))
+		add("  " + p.dim(fmt.Sprintf("%s 为估算值（汇率 %.2f），非账单/非实际结算", sym, v.rate())))
 	}
 	if v.hasPartialCost() {
 		add("  " + p.dim("* = 该行含未定价模型，仅为已定价部分"))
@@ -376,7 +383,7 @@ func (v *View) Render(w io.Writer) {
 		for _, note := range v.QuotaNotes {
 			add("  " + p.dim(Clip(note, inner)))
 		}
-		add("  " + p.dim("Claude / Gemini：本地无额度数据，用各自 CLI 的 /status 查看"))
+		add("  " + p.dim("Claude / Gemini 额度看各自 CLI 的 /status"))
 	} else if len(v.QuotaNotes) > 0 {
 		add(sep)
 		for _, note := range v.QuotaNotes {

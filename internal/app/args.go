@@ -38,6 +38,7 @@ type options struct {
 	top           int
 	initCfg       bool
 	pricingUpdate bool
+	pricingFetch  bool
 	help          bool
 }
 
@@ -107,6 +108,8 @@ func parse(argv []string) (options, error) {
 				o.initCfg = true
 			case "update", "update-pricing":
 				o.pricingUpdate = true
+			case "fetch":
+				o.pricingFetch = true
 			case "help", "h", "?":
 				o.help = true
 			case "version", "v":

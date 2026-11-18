@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -91,7 +92,7 @@ func Run(a Args) int {
 			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
 			return 1
 		}
-		return runPricing(a, paths, set.Pricing, o.pricingUpdate)
+		return runPricing(a, paths, set.Pricing, o.pricingUpdate, o.pricingFetch)
 	}
 	if o.cmd == "quota" {
 		set, _, err := config.Load(paths)
@@ -127,12 +128,32 @@ func Run(a Args) int {
 }
 
 // runPricing shows where the price table comes from and refreshes the local
-// override when --update is passed. Prices are never fetched from the network.
-func runPricing(a Args, paths config.Paths, pricePath string, update bool) int {
+// runPricing shows where the price table comes from and refreshes it when
+// --update or --fetch is passed. --fetch pulls from LiteLLM's community table.
+func runPricing(a Args, paths config.Paths, pricePath string, update, fetch bool) int {
 	tab, err := pricing.Load(pricePath, 0)
 	if err != nil {
 		fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
 		return 1
+	}
+	if fetch {
+		fmt.Fprintln(a.Stdout, "fetching prices from LiteLLM …")
+		fetched, err := pricing.FetchLiteLLM(pricing.LiteLLMURL, 30*time.Second)
+		if err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		n := tab.ApplyFetched(fetched)
+		if err := os.MkdirAll(filepath.Dir(pricePath), 0o755); err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		if err := writePricingFile(pricePath, tab); err != nil {
+			fmt.Fprintln(a.Stderr, "mtok: "+err.Error())
+			return 1
+		}
+		tab, _ = pricing.Load(pricePath, 0)
+		fmt.Fprintf(a.Stdout, "updated %s from LiteLLM (%d models matched)\n", pricePath, n)
 	}
 	if update {
 		if err := os.MkdirAll(filepath.Dir(pricePath), 0o755); err != nil {
@@ -153,10 +174,46 @@ func runPricing(a Args, paths config.Paths, pricePath string, update bool) int {
 	fmt.Fprintf(a.Stdout, "pricing file  %s\n", pricePath)
 	fmt.Fprintf(a.Stdout, "source        %s\n", tab.Source())
 	fmt.Fprintf(a.Stdout, "currency      %s (USD reference rate %.2f)\n", tab.Currency, tab.Rate)
-	if !update {
-		fmt.Fprintln(a.Stdout, "update with   mtok pricing --update  (rebuilds the file from built-in prices)")
+	if !update && !fetch {
+		fmt.Fprintln(a.Stdout, "update with   mtok pricing --update  (rebuild from built-in)")
+		fmt.Fprintln(a.Stdout, "              mtok pricing --fetch   (fetch from LiteLLM online)")
 	}
 	return 0
+}
+
+// writePricingFile serialises the table's resolved prices to pricing.json format.
+func writePricingFile(path string, tab *pricing.Table) error {
+	type priceEntry struct {
+		Input      float64 `json:"input"`
+		Output     float64 `json:"output"`
+		CacheRead  float64 `json:"cache_read,omitempty"`
+		CacheWrite float64 `json:"cache_write,omitempty"`
+	}
+	models := make(map[string]priceEntry)
+	norm := model.New()
+	for key, p := range tab.Export() {
+		name := norm.Resolve(key)
+		if name == "" || name == "Unknown" {
+			name = key
+		}
+		models[name] = priceEntry{
+			Input:      p.Input,
+			Output:     p.Output,
+			CacheRead:  p.CacheRead,
+			CacheWrite: p.CacheWrite,
+		}
+	}
+	doc := map[string]any{
+		"currency": map[string]float64{"rate": tab.Rate},
+		"default":  nil,
+		"models":   models,
+	}
+	data, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return os.WriteFile(path, data, 0o644)
 }
 
 // load resolves paths, config, aliases, prices, adapters and the store.
@@ -406,12 +463,12 @@ func (e *env) buildView(o options, sp span, now time.Time) *render.View {
 func (e *env) magpieNote(res agg.Result) string {
 	switch {
 	case res.MagpieRows > 0 && res.RoutedDropped > 0:
-		return fmt.Sprintf("magpie 明细 %d 条已替代 %d 条 route 记录；直连日志照常计入",
+		return fmt.Sprintf("magpie 明细 %d 条，覆盖 %d 条旧记录；直连日志照常计入",
 			res.MagpieRows, res.RoutedDropped)
 	case res.MagpieRows > 0:
-		return fmt.Sprintf("magpie 明细 %d 条（opencode/node 等无本地日志的来源也在此列）", res.MagpieRows)
+		return fmt.Sprintf("magpie 明细 %d 条（含 opencode/node 等来源）", res.MagpieRows)
 	case res.RoutedKept > 0:
-		return "未发现 magpie 明细（usage.jsonl），route 记录已保留为 Auto(未指明)"
+		return "未找到 magpie 明细，route 记录按 Auto(未指明) 保留"
 	}
 	return ""
 }
@@ -517,7 +574,7 @@ func usage(w io.Writer, version string) {
 		"  mtok doctor          各来源日志、字段与口径自检",
 		"  mtok adapters        列出 adapter 与加载状态",
 		"  mtok config          显示配置与数据路径（--init 生成默认配置）",
-		"  mtok pricing         显示价格表来源（--update 从内置表重建 pricing.json）",
+		"  mtok pricing         显示价格表来源（--update 本地重建；--fetch 从 LiteLLM 在线拉取）",
 		"  mtok schema          输出 --json 的稳定 schema 描述",
 		"  mtok version         版本信息",
 		"",

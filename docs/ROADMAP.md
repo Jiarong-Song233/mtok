@@ -74,7 +74,7 @@
 - **项目/会话维度**：从 cwd/项目路径归档，输出「哪个项目最费钱」「最贵的 10 个会话」「缓存命中率」。
 - **导出**：`mtok export --csv` / `--prometheus`（OpenMetrics）/ `--json` schema 文档化；附 Grafana dashboard 样例。
 - **状态栏 & 实时**：`mtok statusline` 输出一行（如 `¥3.2 · 12.4M tok · 5h 78%`）供 starship/tmux/nushell；`mtok watch` 轻量 TUI 刷新。
-- **价表/别名更新**：内置表 + `mtok pricing --update`（从内置表本地重建，无需联网；v0.3.1 已完成）+ 社区 PR 流程。
+- **价表/别名更新**：内置表 + `mtok pricing --update`（本地重建）+ `mtok pricing --fetch`（LiteLLM 社区价格表在线拉取，v0.3.2 已完成）+ 社区 PR 流程。
 - **预算通知**：超预算触发可配置的本地命令/桌面通知/webhook（含 Feishu，复用现有通道思路）。
 
 ### Phase 3 — 团队与规模化（v1.0）

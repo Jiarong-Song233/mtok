@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.2 — 2026-11-18
+
+- Split cache read and cache write into separate report columns and price them with separate rates.
+- Add `mtok pricing --fetch` to pull community prices from LiteLLM on demand; every fetch stays explicit and local writes are USD-based.
+- Simplify the report's closing notes.
+
 ## v0.3.1 — 2026-11-17
 
 - Reference cost now settles in USD by default; CNY remains available with `currency: CNY` and a configurable `rate`.
