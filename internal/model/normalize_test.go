@@ -37,7 +37,7 @@ func TestResolveCanonicalTable(t *testing.T) {
 		"gmodel":                        "GLM-5.3",
 		"gfmodel":                       "GLM-5.3-Flash",
 		"dmodel":                        "DeepSeek-V4-Pro",
-		"dfmodel":                       "DeepSeek-Flash",
+		"dfmodel":                       "DeepSeek-V4.1-Flash",
 		"qfmodel":                       "Qwen3.8-Flash",
 		"qmodel_38max":                  "Qwen3.8-Max",
 		"kmodel_latest":                 "Kimi-K3.1-Pro",

@@ -11,9 +11,10 @@ var builtinAliases = map[string][]string{
 		"deepseek~4~1~flash", "deepseek41flash", "auto-deepseek-v4-1-flash",
 		"deepseek-v4.1-flash-free", "deepseek-v4.1-flash-max",
 		"sn-deepseek-v4-1-flash-1017", "deepseek-v4.1-flash-1017",
+		// deepseek-flash 是同一底模的短名（Magpie req 字段常见）
+		"deepseek-flash", "deepseekflash", "dfmodel", "auto-deepseek-flash",
 	},
 	"DeepSeek-V4-Pro": {"deepseek-v4-pro", "deepseekv4pro", "dmodel", "auto-deepseek-v4-pro"},
-	"DeepSeek-Flash":  {"deepseek-flash", "deepseekflash", "dfmodel", "auto-deepseek-flash"},
 	"DeepSeek-V4":     {"deepseek-v4", "deepseek-chat", "deepseek-reasoner"},
 
 	// ---- GLM / Zhipu ----
@@ -94,7 +95,7 @@ var builtinAliases = map[string][]string{
 
 	// ---- 国内其它 ----
 	"Hy4":          {"hy4", "hy4free", "hy4std"},
-	"Hy4-Flash":    {"hy4-flash", "hy4flash", "hy4-flash-free", "hy4flash-free"},
+	"Hy4-Flash":    {"hy4-flash", "hy4flash", "hy4-flash-free", "hy4flash-free", "hy-4-flash-free", "hy-4-flash"},
 	"Hy4-Preview":  {"hy4-preview"},
 	"Hy3":          {"hy3"},
 	"Hy3-X":        {"hy3-x"},
