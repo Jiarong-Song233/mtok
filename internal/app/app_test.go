@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/songjiarong/mtok/internal/render"
-	"github.com/songjiarong/mtok/internal/store"
+	"github.com/Jiarong-Song233/mtok/internal/render"
+	"github.com/Jiarong-Song233/mtok/internal/store"
 )
 
 func TestParseFlagsAnywhere(t *testing.T) {

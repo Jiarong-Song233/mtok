@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/songjiarong/mtok/internal/adapters"
-	"github.com/songjiarong/mtok/internal/agg"
-	"github.com/songjiarong/mtok/internal/config"
-	"github.com/songjiarong/mtok/internal/ingest"
-	"github.com/songjiarong/mtok/internal/magpie"
-	"github.com/songjiarong/mtok/internal/model"
-	"github.com/songjiarong/mtok/internal/pricing"
-	"github.com/songjiarong/mtok/internal/render"
-	"github.com/songjiarong/mtok/internal/store"
+	"github.com/Jiarong-Song233/mtok/internal/adapters"
+	"github.com/Jiarong-Song233/mtok/internal/agg"
+	"github.com/Jiarong-Song233/mtok/internal/config"
+	"github.com/Jiarong-Song233/mtok/internal/ingest"
+	"github.com/Jiarong-Song233/mtok/internal/magpie"
+	"github.com/Jiarong-Song233/mtok/internal/model"
+	"github.com/Jiarong-Song233/mtok/internal/pricing"
+	"github.com/Jiarong-Song233/mtok/internal/render"
+	"github.com/Jiarong-Song233/mtok/internal/store"
 )
 
 // IsTerminal reports whether w is an interactive console.

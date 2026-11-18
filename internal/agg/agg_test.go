@@ -3,7 +3,7 @@ package agg
 import (
 	"testing"
 
-	"github.com/songjiarong/mtok/internal/store"
+	"github.com/Jiarong-Song233/mtok/internal/store"
 )
 
 // prices used by the tests: every model costs 1 USD per million input token.

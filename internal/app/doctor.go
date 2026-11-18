@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/songjiarong/mtok/internal/adapters"
-	"github.com/songjiarong/mtok/internal/agg"
-	"github.com/songjiarong/mtok/internal/magpie"
-	"github.com/songjiarong/mtok/internal/render"
+	"github.com/Jiarong-Song233/mtok/internal/adapters"
+	"github.com/Jiarong-Song233/mtok/internal/agg"
+	"github.com/Jiarong-Song233/mtok/internal/magpie"
+	"github.com/Jiarong-Song233/mtok/internal/render"
 )
 
 // doctor checks every source end to end: are the logs there, do the fields

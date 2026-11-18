@@ -16,10 +16,10 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 
-	"github.com/songjiarong/mtok/internal/adapters"
-	"github.com/songjiarong/mtok/internal/globx"
-	"github.com/songjiarong/mtok/internal/model"
-	"github.com/songjiarong/mtok/internal/store"
+	"github.com/Jiarong-Song233/mtok/internal/adapters"
+	"github.com/Jiarong-Song233/mtok/internal/globx"
+	"github.com/Jiarong-Song233/mtok/internal/model"
+	"github.com/Jiarong-Song233/mtok/internal/store"
 )
 
 // Options controls one ingest pass.

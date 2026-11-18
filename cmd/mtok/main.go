@@ -4,7 +4,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/songjiarong/mtok/internal/app"
+	"github.com/Jiarong-Song233/mtok/internal/app"
 )
 
 // Build metadata, injected by scripts/build.ps1.

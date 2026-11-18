@@ -3,8 +3,8 @@ package app
 import (
 	"time"
 
-	"github.com/songjiarong/mtok/internal/agg"
-	"github.com/songjiarong/mtok/internal/render"
+	"github.com/Jiarong-Song233/mtok/internal/agg"
+	"github.com/Jiarong-Song233/mtok/internal/render"
 )
 
 // budgetStatus compares today's and this month's reference spend with the

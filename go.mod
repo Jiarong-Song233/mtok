@@ -1,4 +1,4 @@
-module github.com/songjiarong/mtok
+module github.com/Jiarong-Song233/mtok
 
 go 1.22
 

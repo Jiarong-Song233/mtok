@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/songjiarong/mtok/internal/quota"
+	"github.com/Jiarong-Song233/mtok/internal/quota"
 )
 
 func TestWidthCountsCJKAsTwo(t *testing.T) {

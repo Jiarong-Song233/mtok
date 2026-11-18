@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/songjiarong/mtok/internal/adapters"
-	"github.com/songjiarong/mtok/internal/model"
+	"github.com/Jiarong-Song233/mtok/internal/adapters"
+	"github.com/Jiarong-Song233/mtok/internal/model"
 )
 
 // Disabling an adapter for one run must not drop its offsets: doing so makes the

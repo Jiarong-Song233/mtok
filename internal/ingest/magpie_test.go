@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/songjiarong/mtok/internal/adapters"
-	"github.com/songjiarong/mtok/internal/model"
+	"github.com/Jiarong-Song233/mtok/internal/adapters"
+	"github.com/Jiarong-Song233/mtok/internal/model"
 )
 
 // The journal adapter must mark its rows as proxy-sourced, and local records

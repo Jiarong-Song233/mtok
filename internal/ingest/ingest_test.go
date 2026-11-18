@@ -8,9 +8,9 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 
-	"github.com/songjiarong/mtok/internal/adapters"
-	"github.com/songjiarong/mtok/internal/model"
-	"github.com/songjiarong/mtok/internal/store"
+	"github.com/Jiarong-Song233/mtok/internal/adapters"
+	"github.com/Jiarong-Song233/mtok/internal/model"
+	"github.com/Jiarong-Song233/mtok/internal/store"
 )
 
 // fixture builds a temp home with one declarative adapter over logs/*.jsonl.

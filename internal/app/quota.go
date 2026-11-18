@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/songjiarong/mtok/internal/config"
-	"github.com/songjiarong/mtok/internal/magpie"
-	"github.com/songjiarong/mtok/internal/quota"
-	"github.com/songjiarong/mtok/internal/render"
+	"github.com/Jiarong-Song233/mtok/internal/config"
+	"github.com/Jiarong-Song233/mtok/internal/magpie"
+	"github.com/Jiarong-Song233/mtok/internal/quota"
+	"github.com/Jiarong-Song233/mtok/internal/render"
 )
 
 // collectQuotas reads the local Codex session rate limits first, then adds

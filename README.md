@@ -49,13 +49,13 @@ scoop install mtok
 **go install**
 
 ```powershell
-go install github.com/songjiarong/mtok/cmd/mtok@latest
+go install github.com/Jiarong-Song233/mtok/cmd/mtok@latest
 ```
 
 **源码构建**
 
 ```powershell
-git clone https://github.com/songjiarong/mtok
+git clone https://github.com/Jiarong-Song233/mtok
 cd mtok
 .\scripts\build.ps1                      # 只构建本机版本
 .\scripts\build.ps1 -Targets windows/amd64,linux/amd64,darwin/arm64   # 交叉编译 + hash

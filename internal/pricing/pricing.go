@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/songjiarong/mtok/internal/model"
+	"github.com/Jiarong-Song233/mtok/internal/model"
 )
 
 //go:embed builtin.json

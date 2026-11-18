@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/songjiarong/mtok/internal/render"
-	"github.com/songjiarong/mtok/internal/store"
+	"github.com/Jiarong-Song233/mtok/internal/render"
+	"github.com/Jiarong-Song233/mtok/internal/store"
 )
 
 // Options selects the window and grouping.

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/songjiarong/mtok/internal/quota"
+	"github.com/Jiarong-Song233/mtok/internal/quota"
 )
 
 // ANSI helpers -------------------------------------------------------------
