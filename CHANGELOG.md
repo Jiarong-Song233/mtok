@@ -4,6 +4,7 @@
 
 - Refresh all Claude and GPT-6.2 built-in USD prices from LiteLLM, including separate cache read/write rates.
 - Add aliases and prices for GPT-6.2-Astra-Law, Claude Opus 4.5/4.7, Sonnet 4.5/4.6/5, Fable 5, and dated Claude snapshots.
+- Publish the first GitHub Release with Windows/Linux/macOS binaries and SHA256 checksums; add CI, release workflow, issue templates, `docs/caliber.md`, `CONTRIBUTING.md`, and a v0.3.4 Scoop manifest.
 
 ## v0.3.3 — 2026-11-18
 

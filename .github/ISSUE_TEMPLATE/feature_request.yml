@@ -1,0 +1,32 @@
+name: 功能建议
+description: 提出新 adapter、数据源、导出方式或显示改进
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 现在哪个场景看不清、算不准或操作麻烦
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议的做法
+      description: 命令、输出字段、数据来源或配置方式
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 证据
+      description: 如有本机日志字段样本，请脱敏后贴出键名和值类型
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: 边界
+      options:
+        - label: 不需要新增默认网络请求
+        - label: 不需要上传用量数据
+        - label: 不影响现有 `--json` schema，或已说明版本变更

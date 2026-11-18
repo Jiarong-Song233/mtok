@@ -39,12 +39,13 @@
 
 ## 安装
 
-**Scoop**（推荐，清单见 `scoop/mtok.json`）
+**Scoop**（推荐，清单随仓库发布）
 
 ```powershell
-scoop bucket add mtok https://github.com/Jiarong-Song233/scoop-mtok
-scoop install mtok
+scoop install https://raw.githubusercontent.com/Jiarong-Song233/mtok/main/scoop/mtok.json
 ```
+
+升级用 `scoop update mtok`。
 
 **go install**
 
@@ -289,6 +290,14 @@ mtok 对 magpie 只做**只读**：不写配置、不重启、不代理请求。
 ## 与 ccusage 的关系
 
 解析思路（各家日志的位置与字段形态）参考了 ccusage 这类开源工具的经验，但 mtok 不含、不调用、不依赖 ccusage，全部字段均按本机样本重新确认。
+
+## 文档与贡献
+
+- [统计口径](docs/caliber.md)
+- [数据源与 adapter](docs/adapters.md)
+- [开发规划](docs/ROADMAP.md)
+- [贡献指南](CONTRIBUTING.md)
+- [安全说明](SECURITY.md)
 
 ## License
 

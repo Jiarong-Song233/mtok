@@ -1,0 +1,48 @@
+name: Bug 报告
+description: 报告解析、计费、额度或显示上的问题
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 请贴命令和脱敏后的输出；不要上传原始日志、配置或 token。
+  - type: input
+    id: version
+    attributes:
+      label: mtok 版本
+      placeholder: mtok version 的输出
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 系统与 shell
+      placeholder: Windows 11 / PowerShell 7
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 发生了什么
+      description: 期望是什么，实际是什么
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现命令
+      description: 贴出运行的 mtok 命令；必要时附脱敏输出
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 诊断输出
+      description: 可附 `mtok doctor`、`mtok config`、`mtok adapters` 的脱敏输出
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 已检查
+      options:
+        - label: 已试过最新版本
+        - label: 已确认不是厂商 CLI 自身显示的问题
