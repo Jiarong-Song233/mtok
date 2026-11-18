@@ -29,7 +29,8 @@ var builtinAliases = map[string][]string{
 	// ---- Qwen ----
 	"Qwen3.8-Flash":     {"qwen3.8-flash", "qwen3-8-flash", "qwen3.8-flash-max", "qfmodel", "auto-qwen3-8-flash"},
 	"Qwen3.8-Max":       {"qwen3.8-max", "qwen3-8-max", "qwen3.8-max-max", "qmodel_38max", "auto-qwen3-8-max"},
-	"Qwen4-Max-Preview": {"qmodel_latest"},
+	"Qwen4-Max":         {"qwen4-max", "qwen-4-max", "qwen4max"},
+	"Qwen4-Max-Preview": {"qmodel_latest", "qmodel_latest_preview"},
 	"Qoder-Fast":        {"fast"},
 
 	// ---- Kimi / Moonshot ----
@@ -47,6 +48,8 @@ var builtinAliases = map[string][]string{
 	"SenseNova-6.8-Flash-Lite": {"sn-sensenova-6-8-flash-lite", "sensenova-6.8-flash-lite"},
 
 	// ---- OpenAI / Codex ----
+	"GPT-6.2-Sol":   {"gpt-6.2-sol", "gpt-6-2-sol"},
+	"GPT-6.2-Astra": {"gpt-6.2-astra", "gpt-6-2-astra"},
 	"GPT-6.1-Sol":   {"gpt-6.1-sol", "gpt-6-1-sol"},
 	"GPT-6.1-Terra": {"gpt-6.1-terra", "gpt-6-1-terra"},
 	"GPT-6-Sol":     {"gpt-6-sol"},
