@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -56,19 +57,19 @@ func FetchLiteLLM(url string, timeout time.Duration) (map[string]FetchedPrice, e
 			continue
 		}
 		fp := FetchedPrice{Price: Price{
-			Input:  *e.InputPerToken * M,
-			Output: *e.OutputPerToken * M,
+			Input:  round6(*e.InputPerToken * M),
+			Output: round6(*e.OutputPerToken * M),
 		}}
 		if e.CacheReadPerToken != nil {
-			fp.CacheRead = *e.CacheReadPerToken * M
+			fp.CacheRead = round6(*e.CacheReadPerToken * M)
 			fp.HasCacheRead = true
 		}
 		if e.CacheWritePerToken != nil {
-			fp.CacheWrite = *e.CacheWritePerToken * M
+			fp.CacheWrite = round6(*e.CacheWritePerToken * M)
 			fp.HasCacheWrite = true
 		} else if e.CacheCreationPerTok != nil {
 			// Anthropic calls cache writes "cache creation".
-			fp.CacheWrite = *e.CacheCreationPerTok * M
+			fp.CacheWrite = round6(*e.CacheCreationPerTok * M)
 			fp.HasCacheWrite = true
 		}
 		fk := foldKey(name)
@@ -118,6 +119,11 @@ func (t *Table) Export() map[string]Price {
 		out[k] = v
 	}
 	return out
+}
+
+// round6 removes binary-float artifacts from USD/M prices.
+func round6(v float64) float64 {
+	return math.Round(v*1e6) / 1e6
 }
 
 // stripProvider removes provider prefixes before the final model segment.

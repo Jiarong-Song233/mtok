@@ -15,6 +15,12 @@ func TestBuiltinLookup(t *testing.T) {
 	if !ok || p.Input != 4 || p.Output != 20 || p.CacheRead != 0.2 || p.CacheWrite != 5 {
 		t.Fatalf("unexpected price %+v ok=%v", p, ok)
 	}
+	if p, ok := tab.Lookup("GPT-6.2-Astra"); !ok || p.Input != 8 || p.Output != 40 || p.CacheRead != 0.4 || p.CacheWrite != 10 {
+		t.Fatalf("unexpected GPT-6.2-Astra price %+v ok=%v", p, ok)
+	}
+	if p, ok := tab.Lookup("GPT-6.2-Sol"); !ok || p.Input != 2 || p.Output != 10 || p.CacheRead != 0.1 || p.CacheWrite != 2.5 {
+		t.Fatalf("unexpected GPT-6.2-Sol price %+v ok=%v", p, ok)
+	}
 	// Lookup also accepts any spelling of the canonical name.
 	if _, ok := tab.Lookup("claude_opus_5_5"); !ok {
 		t.Fatal("separator-insensitive lookup failed")
