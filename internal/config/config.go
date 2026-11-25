@@ -105,7 +105,7 @@ func Resolve() (Paths, error) {
 // Defaults are what mtok uses with no config file at all.
 func Defaults() Settings {
 	return Settings{
-		Width:     64,
+		Width:     72,
 		Top:       8,
 		Currency:  "USD",
 		Rate:      7.2, // USD -> CNY reference, used only when currency is CNY
@@ -209,7 +209,7 @@ func Aliases(p Paths) (map[string]string, error) {
 
 // ExampleConfig is written by `mtok config --init`.
 const ExampleConfig = `# mtok configuration (all keys optional)
-width: 64            # max output width in terminal columns
+width: 72            # max output width in terminal columns
 top: 8               # models shown in the table
 currency: USD        # USD renders $, CNY renders ¥
 rate: 7.2            # USD -> CNY conversion, used only when currency is CNY

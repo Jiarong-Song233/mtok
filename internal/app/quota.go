@@ -28,6 +28,25 @@ func collectQuotas(paths config.Paths, set config.Settings, noMagpie bool) ([]re
 		notes = append(notes, "Codex 本地额度：未找到 rate_limits 事件")
 	}
 
+	// T3 gateway caches carry 5-hour and weekly allowances for agents that talk
+	// straight to their vendors (Gemini via Antigravity, Claude Code, Grok) and
+	// so never appear in the proxied magpie log. Reading them stays offline.
+	t3, err := quota.T3(paths.Home)
+	if err != nil {
+		notes = append(notes, "T3 额度读取失败："+trimErr(err))
+	}
+	for _, q := range t3 {
+		out = append(out, render.Quota{
+			Provider:   q.Provider,
+			Name:       q.Name,
+			Remaining:  q.Remaining,
+			Detail:     q.Detail,
+			Source:     q.Source,
+			ObservedAt: q.ObservedAt,
+			Windows:    q.Windows,
+		})
+	}
+
 	if !noMagpie && set.Magpie {
 		qs, err := magpie.New(set.MagpieURL).Quotas()
 		if err != nil {

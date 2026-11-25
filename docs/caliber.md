@@ -55,11 +55,12 @@ magpie 的调用日志按 `(day, agent)` 覆盖同日的 route 记录。route �
 
 ## 额度
 
-额度数据来自本机日志和本地 magpie 接口，不调用厂商私有 API：
+额度数据来自本机文件与本地 magpie 接口，全程离线，不调用厂商私有 API：
 
 - Codex：读取 `~/.codex/sessions/**/rollout-*.jsonl[.zst]` 里的 `rate_limits.primary/secondary`，显示 5h / 7d 剩余百分比和重置时间。
-- magpie：读取 `GET /v1/magpie/quotas`；本地 Codex 读数优先，避免重复显示。
-- Claude / Gemini：本地日志没有可靠的额度字段，提示用各自 CLI 的 `/status` 查看。
+- T3：读取 `~/.t3/caches/*.json` 里各 agent 的 `usageLimits.windows`，显示 Gemini、Claude Code、Grok 等的 5 小时/周剩余百分比和重置时间。Codex 的 T3 缓存会被跳过，避免与更权威的会话日志读数重复。
+- magpie：读取 `GET /v1/magpie/quotas`；同名 provider 以本地读数优先。
+- T3 未覆盖的 agent 才提示用各自 CLI 的 `/status` 查看。
 
 ## 验证新来源
 

@@ -87,11 +87,11 @@ mtok schema              输出 --json 的稳定 schema 描述
 mtok version
 ```
 
-常用选项：`--width/-w N`（默认 64）、`--top/-n N`（默认 8）、`--usd`（默认已用美元）、`--no-magpie`（不读代理明细与代理额度，本地额度仍读）、`--no-sync`（只查库不扫日志）、`--no-color`。
+常用选项：`--width/-w N`（默认 72）、`--top/-n N`（默认 8）、`--usd`（默认已用美元）、`--no-magpie`（不读代理明细与代理额度，本地额度仍读）、`--no-sync`（只查库不扫日志）、`--no-color`。
 
 金额默认以美元结算，价格单位是 USD/百万 token。`缓存读` 和 `缓存写` 分开计价。想改回人民币，在 `~/.config/mtok/config.yaml` 写 `currency: CNY` 和 `rate`。改价直接编辑 `~/.config/mtok/pricing.json`；`mtok pricing --update` 从内置表重建，`mtok pricing --fetch` 从 LiteLLM 社区价格表在线拉取并更新本地文件。`mtok pricing` 显示当前价格来源与路径。
 
-额度来自本机 Codex `sessions/**/rollout-*.jsonl[.zst]` 的 `rate_limits` 与本地 magpie。首次读取归档约几秒，之后只扫改动文件，缓存命中约 50ms。`--json` 带 `schema_version`，契约用 `mtok schema` 查看。预算写在 `~/.config/mtok/config.yaml` 的 `budget.daily` / `budget.monthly`，单位是 `currency` 指定的币种。Claude / Gemini 的剩余额度仍用各自 CLI 的 `/status` 查看。
+额度来自三个本地源，全程离线：Codex `sessions/**/rollout-*.jsonl[.zst]` 的 `rate_limits`；T3 网关缓存 `~/.t3/caches/*.json`（Gemini、Claude Code、Grok 等的 5 小时/周额度）；以及本地 magpie 代理额度。首次读取归档约几秒，之后只扫改动文件。`--json` 带 `schema_version`，契约用 `mtok schema` 查看。预算写在 `~/.config/mtok/config.yaml` 的 `budget.daily` / `budget.monthly`，单位是 `currency` 指定的币种。T3 未接入的 agent 才需要去各自 CLI 的 `/status` 看额度。
 
 输出严格按终端列宽裁剪（CJK 记 2 列），管道/重定向时自动去色。
 

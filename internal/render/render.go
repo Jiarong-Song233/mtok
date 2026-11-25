@@ -248,10 +248,10 @@ func (v *View) Render(w io.Writer) {
 	sep := "  " + p.dim(strings.Repeat("─", inner))
 	add(sep)
 
-	// Column budget: 2 margin + model + 4 token columns of 6 and a money
+	// Column budget: 2 margin + model + 4 token columns of 7 and a money
 	// column of 7, plus separators.
 	const (
-		numW  = 6
+		numW  = 7
 		costW = 7
 	)
 	wM := inner - 4*(numW+1) - (costW + 1) - 2
@@ -380,7 +380,9 @@ func (v *View) Render(w io.Writer) {
 		for _, note := range v.QuotaNotes {
 			add("  " + p.dim(Clip(note, inner)))
 		}
-		add("  " + p.dim("Claude / Gemini 额度看各自 CLI 的 /status"))
+		if !hasProvider(v.Quotas, "claude") && !hasProvider(v.Quotas, "gemini") {
+			add("  " + p.dim("Claude / Gemini 额度看各自 CLI 的 /status"))
+		}
 	} else if len(v.QuotaNotes) > 0 {
 		add(sep)
 		for _, note := range v.QuotaNotes {
@@ -453,6 +455,18 @@ func quotaColor(remaining float64) string {
 	return "31"
 }
 
+// hasProvider reports whether any collected quota came from the named
+// provider, so the fallback "no local data" hint can hide itself once a real
+// reading exists.
+func hasProvider(quotas []Quota, provider string) bool {
+	for _, q := range quotas {
+		if q.Provider == provider {
+			return true
+		}
+	}
+	return false
+}
+
 func resetText(q Quota, now time.Time) string {
 	var at int64
 	for _, w := range q.Windows {
@@ -514,7 +528,11 @@ func (v *View) RenderQuotas(w io.Writer) {
 	for _, note := range v.QuotaNotes {
 		add("  " + p.dim(Clip(note, inner)))
 	}
-	add("  " + p.dim("Claude / Gemini：本地无额度数据，用各自 CLI 的 /status 查看"))
+	// Only point at the vendor CLIs when this run truly surfaced no local
+	// reading for them — T3 caches now carry both when present.
+	if !hasProvider(v.Quotas, "claude") && !hasProvider(v.Quotas, "gemini") {
+		add("  " + p.dim("Claude / Gemini：本地无额度数据，用各自 CLI 的 /status 查看"))
+	}
 	for _, l := range lines {
 		if Width(stripAnsi(l)) > width {
 			l = Clip(stripAnsi(l), width)

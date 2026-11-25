@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.6 — 2026-11-25
+
+- Read 5-hour and weekly allowances from the local T3 gateway caches (`~/.t3/caches/*.json`), so Gemini, Claude Code and Grok quotas appear alongside Codex and magpie. Codex keeps using its session-log source. The "use each CLI's /status" hint now shows only when no local reading exists.
+
 ## v0.3.5 — 2026-11-18
 
 - Merge cache read and cache write into a single `缓存` report column. Internal storage, JSON output, and pricing still keep the two rates separate.
