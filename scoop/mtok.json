@@ -1,5 +1,5 @@
 {
-    "version": "0.3.6",
+    "version": "0.3.7",
     "description": "Extremely light global AI token usage tracker: incremental local log parsing, proxy-aware model resolution (sees through magpie auto/group routing), cross-vendor model merging, reference pricing. One static exe, no runtime.",
     "homepage": "https://github.com/Jiarong-Song233/mtok",
     "license": "MIT",
@@ -11,8 +11,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/Jiarong-Song233/mtok/releases/download/v0.3.6/mtok_0.3.6_windows_amd64.exe#/mtok.exe",
-            "hash": "8aebb48c230630edfb539a7bb51446d32d1207b27064d3732edae60d3ae60e7c"
+            "url": "https://github.com/Jiarong-Song233/mtok/releases/download/v0.3.7/mtok_0.3.7_windows_amd64.exe#/mtok.exe",
+            "hash": "0b984df3cbaeb8b147a81c328e2e95dcb5e947d6e7bc0d16512fa9fe9b16efda"
         }
     },
     "bin": "mtok.exe",
