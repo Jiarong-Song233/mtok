@@ -123,6 +123,30 @@ func TestGeminiModelSelectionAndUsage(t *testing.T) {
 	}
 }
 
+func TestGeminiCLIModelFieldAndThinkingStrip(t *testing.T) {
+	a := NewGemini(t.TempDir())
+	ctx := &Context{}
+	// antigravity-cli records the model on the response line and appends the
+	// thinking level, which must be stripped so sessions merge by model.
+	plan := `{"step_index":1,"source":"MODEL","type":"PLANNER_RESPONSE","created_at":"2026-11-25T09:04:16Z","model":"gemini-4-hydrogen-high","input_tokens":18248,"cache_read_tokens":0,"output_tokens":1061}`
+	recs := one(t, a, plan, ctx)
+	if len(recs) != 1 {
+		t.Fatalf("want 1 record, got %d", len(recs))
+	}
+	if recs[0].Model != "gemini-4-hydrogen" {
+		t.Fatalf("thinking level not stripped: %q", recs[0].Model)
+	}
+	if recs[0].Input != 18248 || recs[0].Output != 1061 {
+		t.Fatalf("unexpected record %+v", recs[0])
+	}
+	// A real model variant ending in "-thinking" must be left intact.
+	claude := `{"step_index":2,"source":"MODEL","type":"PLANNER_RESPONSE","created_at":"2026-11-25T09:04:17Z","model":"claude-opus-4-6-thinking","input_tokens":10,"output_tokens":2}`
+	recs = one(t, a, claude, ctx)
+	if len(recs) != 1 || recs[0].Model != "claude-opus-4-6-thinking" {
+		t.Fatalf("claude thinking variant mangled: %+v", recs)
+	}
+}
+
 func TestKimiWireStatusUpdate(t *testing.T) {
 	a := NewKimi(t.TempDir())
 	ctx := &Context{}

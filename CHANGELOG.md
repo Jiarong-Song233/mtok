@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.7 — 2026-11-25
+
+- Read Gemini token usage from the newer `~/.gemini/antigravity-cli/brain` transcripts, not just the original `antigravity` directory. The CLI records `model` on every response; Gemini's trailing thinking-level segment (`-high`, `-medium`, ...) is stripped so sessions merge by model. Gemini now appears in the model table with its own token totals.
+
 ## v0.3.6 — 2026-11-25
 
 - Read 5-hour and weekly allowances from the local T3 gateway caches (`~/.t3/caches/*.json`), so Gemini, Claude Code and Grok quotas appear alongside Codex and magpie. Codex keeps using its session-log source. The "use each CLI's /status" hint now shows only when no local reading exists.

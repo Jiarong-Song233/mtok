@@ -78,7 +78,7 @@ mtok --json              机器可读（给脚本 / 状态栏用）
 mtok --check             预算门禁：超预算退出码 3
 mtok --by-agent          按来源汇总，关闭跨厂商合并
 mtok --rebuild           清空聚合库后全量重建
-mtok quota               只看剩余额度（Codex 本地 + magpie）
+mtok quota               只看剩余额度（Codex 本地 + T3 网关 + magpie）
 mtok doctor              各来源自检 + 与 magpie 对账
 mtok adapters            列出 adapter、路径、prefilter、加载状态
 mtok config              显示配置与数据路径（--init 生成默认配置）
@@ -103,7 +103,7 @@ mtok version
 |---|---|---|---|
 | Claude Code | `~/.claude/projects/**/*.jsonl` | `message.model`、`message.usage.{input,output,cache_read_input,cache_creation_input}_tokens` | 支持（按 `message.id + requestId` 去重） |
 | Codex | `~/.codex/sessions/**/rollout-*.jsonl[.zst]` | `event_msg/token_count` 的 `last_token_usage`，模型来自 `turn_context.payload.model` | 支持（`.zst` 归档整包解码一次） |
-| Antigravity / Gemini | `~/.gemini/antigravity/brain/*/.system_generated/logs/transcript_full.jsonl` | `PLANNER_RESPONSE` 的 `input_tokens` / `output_tokens` / `cache_read_tokens` | 支持（模型取自日志里的 `Model Selection` 变更行） |
+| Antigravity / Gemini | `~/.gemini/{antigravity,antigravity-cli}/brain/*/.system_generated/logs/transcript_full.jsonl` | `PLANNER_RESPONSE` 的 `input_tokens` / `output_tokens` / `cache_read_tokens`；`antigravity-cli` 带 `model` 字段，旧版取日志里的 `Model Selection` 变更行 | 支持（Gemini 模型名末尾的思考档位会剥离，按模型合并） |
 | Grok Build | `~/.grok/logs/*.jsonl` | `shell.turn.inference_done` 的 `prompt_tokens` / `cached_prompt_tokens` / `completion_tokens` | 支持（模型取自 `model changed`，缺省读 `~/.grok/config.toml`） |
 | Kimi | `~/.kimi/sessions/**/wire.jsonl` | `StatusUpdate.token_usage.{input_other,input_cache_read,input_cache_creation,output}` | 支持（日志不含模型名，用 `config.toml` 的 `default_model`） |
 | ZCode | `~/.zcode/cli/rollout/model-io-*.jsonl` | `response.usage.{inputTokens,outputTokens,cacheReadTokens,cacheWriteTokens}` + `model.modelId` | 支持 |

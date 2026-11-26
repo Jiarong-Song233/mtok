@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -229,9 +230,13 @@ func (g *Gemini) Name() string { return "gemini" }
 func (g *Gemini) Agent() string { return "antigravity" }
 
 // Globs implements Adapter. Only the full transcript is read; the chunked and
-// non-full copies contain the same records.
+// non-full copies contain the same records. Both the original Antigravity app
+// and the newer antigravity-cli keep transcripts under .gemini.
 func (g *Gemini) Globs() []string {
-	return []string{filepath.ToSlash(filepath.Join(g.home, ".gemini", "antigravity", "brain", "*", ".system_generated", "logs", "transcript_full.jsonl"))}
+	return []string{
+		filepath.ToSlash(filepath.Join(g.home, ".gemini", "antigravity", "brain", "*", ".system_generated", "logs", "transcript_full.jsonl")),
+		filepath.ToSlash(filepath.Join(g.home, ".gemini", "antigravity-cli", "brain", "*", ".system_generated", "logs", "transcript_full.jsonl")),
+	}
 }
 
 // Needles implements Prefilterer.
@@ -255,10 +260,19 @@ func (g *Gemini) ParseLine(line []byte, ctx *Context) []Record {
 		if in+out+cr == 0 {
 			return nil
 		}
+		// antigravity-cli records the model on every response; the original
+		// Antigravity app omits it, so fall back to the Model Selection notice.
+		model := str(m, "model")
+		if model != "" {
+			model = stripGeminiThinking(model)
+			ctx.Model = model
+		} else {
+			model = ctx.Model
+		}
 		t, _ := timeFrom(m, "created_at")
 		return []Record{{
 			Time:      t,
-			Model:     ctx.Model,
+			Model:     model,
 			Input:     in,
 			Output:    out,
 			CacheRead: cr,
@@ -295,6 +309,22 @@ func modelSelection(content string) string {
 		}
 	}
 	return trimSpace(rest[:end])
+}
+
+// stripGeminiThinking drops the trailing thinking-level segment Antigravity
+// appends to Gemini slugs (gemini-4-hydrogen-high -> gemini-4-hydrogen), so the
+// same model at different reasoning levels merges into one row. Only Gemini
+// slugs are touched; claude-opus-4-6-thinking keeps its own suffix.
+func stripGeminiThinking(model string) string {
+	if !strings.HasPrefix(strings.ToLower(model), "gemini") {
+		return model
+	}
+	for _, s := range []string{"-xhigh", "-high", "-medium", "-low"} {
+		if strings.HasSuffix(model, s) {
+			return strings.TrimSuffix(model, s)
+		}
+	}
+	return model
 }
 
 // Kimi parses Kimi CLI wire logs. Per-step token counts use input_other for
